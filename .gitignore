@@ -1,2 +1,4 @@
 build/
 libs/
+bin/
+src/CMakeLists.txt

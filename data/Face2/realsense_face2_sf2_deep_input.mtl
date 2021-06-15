@@ -1,0 +1,11 @@
+#  Produced by Matlab Write Wobj exporter 
+# 
+newmtl skin
+Ka 0.50000 0.50000 0.50000
+Kd 1.00000 1.00000 1.00000
+Ks 0.30000 0.30000 0.30000
+illum 2
+Ns 10.00000
+map_Kd realsense_face2_sf2_deep_input.png 
+# 
+#  EOF
