@@ -7,6 +7,10 @@
 #include <dlib/image_processing/render_face_detections.h>
 #include <dlib/image_processing.h>
 
+#include "BFM.h"
+
 int main() {
+	auto bfm = setup();
+	create_random_face(bfm);
 	return 0;
 }
