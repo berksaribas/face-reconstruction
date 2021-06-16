@@ -2,3 +2,4 @@ build/
 libs/
 bin/
 src_bin/
+src/CMakeLists.txt
