@@ -1,0 +1,9 @@
+set(HEADER_FILES 
+    Eigen.h
+    FreeImageHelper.h
+    BFM.h
+    FacialLandmarkDetection.h
+)
+set(SOURCE_FILES 
+    FreeImageHelper.cpp
+)

@@ -3,22 +3,16 @@
 #include <iostream>
 #include <fstream>
 
-#include "Eigen.h"
-//#include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
+
 #include <dlib/gui_widgets.h>
-//#include <opencv2/opencv.hpp>
 #include <dlib/opencv.h>
 #include <dlib/image_processing/frontal_face_detector.h>
 #include <dlib/image_processing/render_face_detections.h>
 #include <dlib/image_processing.h>
 
-using namespace cv;
-using namespace dlib;
-using namespace std;
-
-std::vector<full_object_detection> DetectLandmarks(char* imagePath="", bool presentLandmarks=false, bool holdImg=true) {
-    std::vector<full_object_detection> empty;
+std::vector<dlib::full_object_detection> DetectLandmarks(char* imagePath="", bool presentLandmarks=false, bool holdImg=true) {
+    std::vector<dlib::full_object_detection> empty;
     try
     {
 
@@ -28,16 +22,16 @@ std::vector<full_object_detection> DetectLandmarks(char* imagePath="", bool pres
 
         if (!cap.isOpened())
         {
-            cerr << "Unable to connect to camera" << endl;
+            std::cerr << "Unable to connect to camera\n";
             return empty; // 1
         }
 
-        image_window win;
+        dlib::image_window win;
 
         // Load face detection and pose estimation models.
-        frontal_face_detector detector = get_frontal_face_detector();
-        shape_predictor pose_model;
-        deserialize("shape_predictor_68_face_landmarks.dat") >> pose_model;
+        dlib::frontal_face_detector detector = dlib::get_frontal_face_detector();
+        dlib::shape_predictor pose_model;
+        dlib::deserialize("shape_predictor_68_face_landmarks.dat") >> pose_model;
 
         // Grab and process frames until the main window is closed by the user.
         while (!win.is_closed())
@@ -54,27 +48,27 @@ std::vector<full_object_detection> DetectLandmarks(char* imagePath="", bool pres
             // to reallocate the memory which stores the image as that will make cimg
             // contain dangling pointers.  This basically means you shouldn't modify temp
             // while using cimg.
-            cv_image<bgr_pixel> cimg(temp);
+            dlib::cv_image<dlib::bgr_pixel> cimg(temp);
 
             // Detect faces 
-            std::vector<rectangle> faces = detector(cimg);
+            std::vector<dlib::rectangle> faces = detector(cimg);
             // Find the pose of each face.
-            std::vector<full_object_detection> shapes;
+            std::vector<dlib::full_object_detection> shapes;
             for (unsigned long i = 0; i < faces.size(); ++i)
                 shapes.push_back(pose_model(cimg, faces[i]));
 
             for (unsigned long i = 0; i < faces.size(); ++i)
                 for (unsigned long j = 0; j < pose_model(cimg, faces[i]).num_parts(); ++j)
-                    cout << pose_model(cimg, faces[i]).part(j).x() << std::endl;
+                    std::cout << pose_model(cimg, faces[i]).part(j).x() << std::endl;
 
             if (presentLandmarks) {
                 // Display it all on the screen
                 win.clear_overlay();
                 win.set_image(cimg);
-                win.add_overlay(render_face_detections(shapes));
+                win.add_overlay(dlib::render_face_detections(shapes));
 
                 if (holdImg) {
-                    int key = waitKey(10000);
+                    int key = cv::waitKey(10000);
                     if (key == 27) {
                         break;
                     }
@@ -84,17 +78,17 @@ std::vector<full_object_detection> DetectLandmarks(char* imagePath="", bool pres
             return shapes;
         }
     }
-    catch (serialization_error& e)
+    catch (dlib::serialization_error& e)
     {
-        cout << "You need dlib's default face landmarking model file to run this example." << endl;
-        cout << "You can get it from the following URL: " << endl;
-        cout << "   http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2" << endl;
-        cout << endl << e.what() << endl;
+        std::cout << "You need dlib's default face landmarking model file to run this example.\n";
+        std::cout << "You can get it from the following URL: \n";
+        std::cout << "   http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2\n";
+        std::cout << "\n" << e.what() << "\n";
         return empty;
     }
-    catch (exception& e)
+    catch (std::exception& e)
     {
-        cout << e.what() << endl;
+        std::cout << e.what() << "\n";
         return empty;
     }
 }

@@ -1,10 +1,11 @@
 #pragma once
 
 #include <string>
-#include "H5Cpp.h"
 #include <iostream>
 #include <algorithm>
 #include <fstream>
+#include <vector>
+#include <Eigen.h>
 
 std::string triangles_path = "../data/shape representer cells.bin"; // 3x56572
 std::string texture_path = "../data/color model mean.bin"; // 85764
@@ -65,7 +66,7 @@ void* load_binary_data(const char* filename) {
     return file_contents;
 }
 
-BFM setup() {
+BFM bfm_setup() {
     BFM bfm;
     bfm.triangles = (int*)load_binary_data(triangles_path.c_str());
 
@@ -84,7 +85,7 @@ BFM setup() {
     return bfm;
 }
 
-void create_random_face(BFM bfm) {
+void bfm_create_random_face(BFM bfm) {
     int seed;
     std::cin >> seed;
     srand(seed);
