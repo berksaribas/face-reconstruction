@@ -106,7 +106,7 @@ void create_random_face(BFM bfm) {
     MatrixXf result = shape_result + exp_result;
 
     for (int i = 0; i < 85764; i += 3) {
-        obj_file << "v " << bfm.shape_mean[i] + result(i) << " " << bfm.shape_mean[i + 1] + result(i + 1) << " " << bfm.shape_mean[i + 2] + result(i + 2) << " " << bfm.mean_tex[i] << " " << bfm.mean_tex[i + 1] << " " << bfm.mean_tex[i + 2] << "\n";
+        obj_file << "v " << bfm.shape_mean[i] + bfm.exp_mean[i] + result(i) << " " << bfm.shape_mean[i + 1] + bfm.exp_mean[i + 1] + result(i + 1) << " " << bfm.shape_mean[i + 2] + bfm.exp_mean[i + 2] + result(i + 2) << " " << bfm.mean_tex[i] << " " << bfm.mean_tex[i + 1] << " " << bfm.mean_tex[i + 2] << "\n";
     }
 
     for (int i = 0; i < 56572; i++) {
