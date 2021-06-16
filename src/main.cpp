@@ -2,15 +2,30 @@
 #include <fstream>
 
 #include "Eigen.h"
-#include <opencv2/opencv.hpp>
-#include <dlib/image_processing/frontal_face_detector.h>
-#include <dlib/image_processing/render_face_detections.h>
-#include <dlib/image_processing.h>
+//#include <opencv2/opencv.hpp>
 
-#include "BFM.h"
+#include <opencv2/highgui/highgui.hpp>
+#include <dlib/gui_widgets.h>
 
-int main() {
-	auto bfm = setup();
-	create_random_face(bfm);
-	return 0;
+#include "FacialLandmarkDetection.h";
+
+#define DETECT_FACIAL_LANDMARKS		1
+#define SHOW_FACIAL_LANDMARKS		1
+
+using namespace dlib;
+using namespace std;
+
+int main(int argc, char** argv) {
+	//return 0;
+	if (DETECT_FACIAL_LANDMARKS) {
+		if (argc < 4) {
+			cout << "too little arguments. Provide a valid path to the data" << endl;
+			return 1;
+		}
+		cout << argc << endl;
+		char* path = argv[3];
+		cout << path << endl;
+		std::vector<full_object_detection> detectedLandmarks;
+		detectedLandmarks = DetectLandmarks(path, SHOW_FACIAL_LANDMARKS, true);
+	}
 }
