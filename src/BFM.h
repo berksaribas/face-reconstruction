@@ -33,6 +33,13 @@ struct BFM {
     float* exp_pca_basis;
 
     std::vector<int> landmarks;
+
+    
+};
+
+struct Parameters {
+    VectorXf shape_weights;
+    VectorXf exp_weights;
 };
 
 void load_landmarks(BFM& bfm) {
@@ -85,25 +92,28 @@ BFM bfm_setup() {
     return bfm;
 }
 
-void bfm_create_random_face(BFM bfm) {
+Parameters bfm_create_random_face(BFM bfm) {
     int seed;
     std::cin >> seed;
     srand(seed);
 
+    Parameters params;
+    params.shape_weights = VectorXf::Random(199) * 0.02;
+    params.exp_weights = VectorXf::Random(100) * 0.02;
+    return params;
+}
+
+void bfm_create_obj(BFM bfm, Parameters params) {
     std::ofstream obj_file("export.obj");
-    
-    MatrixXf shape_pca_var =  Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_var, 199, 1);
+
+    MatrixXf shape_pca_var = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_var, 199, 1);
     MatrixXf shape_pca_basis = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 199);
 
     MatrixXf exp_pca_var = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 100, 1);
     MatrixXf exp_pca_basis = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 100);
 
-    VectorXf shape_weights = VectorXf::Random(199) * 0.02;
-    VectorXf exp_weights = VectorXf::Random(100) * 0.02;
-
-
-    MatrixXf shape_result = shape_pca_basis * (shape_pca_var * shape_weights);
-    MatrixXf exp_result = exp_pca_basis * (exp_pca_var * exp_weights);
+    MatrixXf shape_result = shape_pca_basis * (shape_pca_var * params.shape_weights);
+    MatrixXf exp_result = exp_pca_basis * (exp_pca_var * params.exp_weights);
     MatrixXf result = shape_result + exp_result;
 
     for (int i = 0; i < 85764; i += 3) {

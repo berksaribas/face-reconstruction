@@ -33,6 +33,8 @@ std::vector<dlib::full_object_detection> DetectLandmarks(char* imagePath="", boo
         dlib::shape_predictor pose_model;
         dlib::deserialize("shape_predictor_68_face_landmarks.dat") >> pose_model;
 
+        std::vector<dlib::full_object_detection> shapes;
+
         // Grab and process frames until the main window is closed by the user.
         while (!win.is_closed())
         {
@@ -53,7 +55,6 @@ std::vector<dlib::full_object_detection> DetectLandmarks(char* imagePath="", boo
             // Detect faces 
             std::vector<dlib::rectangle> faces = detector(cimg);
             // Find the pose of each face.
-            std::vector<dlib::full_object_detection> shapes;
             for (unsigned long i = 0; i < faces.size(); ++i)
                 shapes.push_back(pose_model(cimg, faces[i]));
 
@@ -74,9 +75,14 @@ std::vector<dlib::full_object_detection> DetectLandmarks(char* imagePath="", boo
                     }
                 }
             }
+            else {
+                break;
+            }
 
             return shapes;
         }
+
+        return shapes;
     }
     catch (dlib::serialization_error& e)
     {
