@@ -8,7 +8,10 @@
 #include <Eigen.h>
 
 std::string triangles_path = "../data/shape representer cells.bin"; // 3x56572
-std::string texture_path = "../data/color model mean.bin"; // 85764
+
+std::string color_mean_path = "../data/color model mean.bin"; // 85764
+std::string color_pca_variance_path = "../data/color model pcaVariance.bin"; // 199
+std::string color_pca_basis_path = "../data/color model pcaBasis.bin"; // 85764x199
 
 std::string shape_mean_path = "../data/shape model mean.bin"; // 85764
 std::string shape_pca_variance_path = "../data/shape model pcaVariance.bin"; // 199
@@ -22,7 +25,10 @@ std::string bfm_landmarks_path = "../data/Landmarks68_model2017-1_face12_nomouth
 
 struct BFM {
     int* triangles;
-    float* mean_tex;
+
+    float* color_mean;
+    float* color_pca_var;
+    float* color_pca_basis;
 
     float* shape_mean;
     float* shape_pca_var;
@@ -70,7 +76,9 @@ BFM bfm_setup() {
     BFM bfm;
     bfm.triangles = (int*)load_binary_data(triangles_path.c_str());
 
-    bfm.mean_tex = (float*)load_binary_data(texture_path.c_str());
+    bfm.color_mean = (float*)load_binary_data(color_mean_path.c_str());
+    bfm.color_pca_var = (float*)load_binary_data(color_pca_variance_path.c_str());
+    bfm.color_pca_basis = (float*)load_binary_data(color_pca_basis_path.c_str());
 
     bfm.shape_mean = (float*)load_binary_data(shape_mean_path.c_str());
     bfm.shape_pca_var = (float*)load_binary_data(shape_pca_variance_path.c_str());
@@ -107,7 +115,7 @@ void bfm_create_random_face(BFM bfm) {
     MatrixXf result = shape_result + exp_result;
 
     for (int i = 0; i < 85764; i += 3) {
-        obj_file << "v " << bfm.shape_mean[i] + bfm.exp_mean[i] + result(i) << " " << bfm.shape_mean[i + 1] + bfm.exp_mean[i + 1] + result(i + 1) << " " << bfm.shape_mean[i + 2] + bfm.exp_mean[i + 2] + result(i + 2) << " " << bfm.mean_tex[i] << " " << bfm.mean_tex[i + 1] << " " << bfm.mean_tex[i + 2] << "\n";
+        obj_file << "v " << bfm.shape_mean[i] + bfm.exp_mean[i] + result(i) << " " << bfm.shape_mean[i + 1] + bfm.exp_mean[i + 1] + result(i + 1) << " " << bfm.shape_mean[i + 2] + bfm.exp_mean[i + 2] + result(i + 2) << " " << bfm.color_mean[i] << " " << bfm.color_mean[i + 1] << " " << bfm.color_mean[i + 2] << "\n";
     }
 
     for (int i = 0; i < 56572; i++) {

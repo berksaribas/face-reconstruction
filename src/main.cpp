@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
 	//Here we only transform the mean shape but in real application we will have something similar to random face generator in BFM.h
 	auto transformed_vertices = calculate_transformation_perspective(width, height, transformation_matrix, bfm.shape_mean);
 	//After having the transformed vertices there are two use cases, following command renders the image for DENSE term
-	auto rendered_result = render_mesh(context, transformed_vertices, bfm.triangles, bfm.mean_tex, bfm.landmarks, true);
+	auto rendered_result = render_mesh(context, transformed_vertices, bfm.triangles, bfm.color_mean, bfm.landmarks, true);
 	cv::imwrite("img.png", rendered_result);
 	//Following is for the sparse term, containing 2D landmarks:
 	//This is a 68x2 matrix, each row having x and y coordinates of landmarks
