@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.9)
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE TYPE INTERNAL FORCE)
 
@@ -13,6 +13,13 @@ set(Ceres_INCLUDE_DIR ${Ceres_DIR}/../include)
 set(dlib_DIR ${LIBRARY_DIR}/Dlib/lib/cmake/dlib CACHE PATH "Path to Ceres build folder")
 set(dlib_INCLUDE_DIR ${LIBRARY_DIR}/Dlib/include CACHE PATH "Path to glog source folder")
 set(OpenCV_DIR "C:/opencv/build")
+
+# OpenGL stuff
+set(GLFW_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../glfw/include CACHE PATH "Path to glfw include")
+set(GLFW_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/../glfw/lib-vc2019/glfw3.lib CACHE PATH "Path to glfw include")
+
+set(GLEW_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../glew/include CACHE PATH "Path to glew include")
+set(GLEW_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/../glew/lib/Release/x64/glew32s.lib CACHE PATH "Path to glew libraries")
 
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${Ceres_DIR})
 
@@ -29,6 +36,7 @@ find_package(Ceres REQUIRED)
 find_package(glog REQUIRED ${glog_DIR_HINT})
 find_package(dlib REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(OpenGL REQUIRED)
 
 add_definitions("-D_DISABLE_EXTENDED_ALIGNED_STORAGE")
 
@@ -42,14 +50,12 @@ message(STATUS "path to ceres include directory: ${Ceres_INCLUDE_DIR}")
 message(STATUS "glog library name: ${glog_LIBRARIES}")
 message(STATUS "path to glog include directory = ${glog_INCLUDE_DIR}")
 
-
-# Set files to be compiled
 include(files.cmake)
 
 link_directories(${FreeImage_LIBRARY_DIR})
 add_executable(exercise_05 main.cpp ${HEADER_FILES} ${SOURCE_FILES})
-target_link_libraries(exercise_05 ceres freeimage dlib::dlib ${OpenCV_LIBS})
-target_include_directories(exercise_05 PUBLIC ${Eigen3_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}  ${Ceres_INCLUDE_DIR} ${glog_INCLUDE_DIR} ${FreeImage_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${dlib_INCLUDE_DIR})
+target_link_libraries(exercise_05 ceres freeimage dlib::dlib ${OpenCV_LIBS} ${GLEW_LIBRARY} ${GLFW_LIBRARY} ${OPENGL_LIBRARIES})
+target_include_directories(exercise_05 PUBLIC ${Eigen3_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}  ${Ceres_INCLUDE_DIR} ${glog_INCLUDE_DIR} ${FreeImage_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${dlib_INCLUDE_DIR} ${GLEW_INCLUDE_DIRS} ${GLFW_INCLUDE_DIRS})
 
 # # Visual Studio properties
 # set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT exercise_05)

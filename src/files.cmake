@@ -3,7 +3,9 @@ set(HEADER_FILES
     FreeImageHelper.h
     BFM.h
     FacialLandmarkDetection.h
+    Renderer.h
 )
 set(SOURCE_FILES 
     FreeImageHelper.cpp
+    Renderer.cpp
 )
