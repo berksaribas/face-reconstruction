@@ -4,17 +4,18 @@
 #define GLOG_NO_ABBREVIATED_SEVERITIES
 
 #include <ceres/ceres.h>
+#include <CalcErrorTerm.h>
 
 /**
  * ICP optimizer - using Ceres for optimization.
  */
-/*class CeresICPOptimizer { //: public ICPOptimizer {
+class Optimizer { 
 public:
 
-	CeresICPOptimizer() :
+	Optimizer() :
 		m_nIterations{ 20 } {}
 
-	virtual Eigen::Matrix4f estimatePose(const PointCloud& source, const PointCloud& target, Eigen::Matrix4f initialPose = Matrix4f::Identity()) override {
+	/*Eigen::Matrix4f estimatePose(const BFM& bfm, const std::vector<dlib::full_object_detection> target_landmarks, Eigen::Matrix4f initialPose = Matrix4f::Identity()) {
 		// Build the index of the FLANN tree (for fast nearest neighbor lookup).
 		m_nearestNeighborSearch->buildIndex(target.getPoints());
 
@@ -65,7 +66,7 @@ public:
 		}
 
 		return estimatedPose;
-	}
+	}*/
 
 
 private:
@@ -79,29 +80,30 @@ private:
 		options.num_threads = 8;
 	}
 
-	void prepareConstraints(const std::vector<Eigen::Vector3f>& sourcePoints, const std::vector<Eigen::Vector3f>& targetPoints, const std::vector<Vector3f>& targetNormals, const std::vector<Match> matches, const PoseIncrement<double>& poseIncrement, ceres::Problem& problem) const {
-		const unsigned nPoints = sourcePoints.size();
+	void prepareConstraints(const BFM bfm, const MatrixXf& srcLandmarks, std::vector<dlib::full_object_detection> targetLandmarks, Parameters params, ceres::Problem& problem) const {
+		const unsigned nPoints = srcLandmarks.size();
 
-		for (unsigned i = 0; i < nPoints; ++i) {
-			const auto match = matches[i];
-			if (match.idx >= 0) {
-				const auto& sourcePoint = sourcePoints[i];
-				const auto& targetPoint = targetPoints[match.idx];
-				const auto& weight = match.weight;
+		for (unsigned i = 0; i < 68; ++i) {
+			//const auto match = matches[i];
+			if (true) { // TODO: check if both points are defined
+				const auto& sourcePoint = srcLandmarks[i];
+				const auto& targetPoint = targetLandmarks[0].part(i);
+				const auto& weight = 1; // TODO: targetLandmarks[0].part(i).cost;
 
-				if (!sourcePoint.allFinite() || !targetPoint.allFinite())
-					continue;
+				//if (!sourcePoint.allFinite() || !targetPoint.allFinite())
+				//	continue;
 
 				// TODO: Create a new point-to-point cost function and add it as constraint (i.e. residual block) 
 				// to the Ceres problem.
-				ceres::CostFunction* costPoint = PointToPointConstraint::create(sourcePoint, targetPoint, weight);
+				ceres::CostFunction* costPoint = SparseCostFunction::create(bfm, targetPoint, i, weight);
 				//ceres::CostFunction* costFun = new ceres::AutoDiffCostFunction<PointToPointConstraint, 3, 6>();
 				problem.AddResidualBlock(
 					costPoint,
-					nullptr, poseIncrement.getData()
-				);
+					nullptr, 
+					(double*)&params.shape_weights, (double*)&params.exp_weights, (double*)&params.col_weights
+				);//TODO: invalid float to double cast
 
-				if (m_bUsePointToPlaneConstraints) {
+				/*if (m_bUsePointToPlaneConstraints) {
 					const auto& targetNormal = targetNormals[match.idx];
 
 					if (!targetNormal.allFinite())
@@ -109,18 +111,18 @@ private:
 
 					// TODO: Create a new point-to-plane cost function and add it as constraint (i.e. residual block) 
 					// to the Ceres problem.
-					ceres::CostFunction* costPlane = PointToPlaneConstraint::create(sourcePoint, targetPoint, targetNormal, weight);
+					ceres::CostFunction* costPlane = SparseCostFunction::create(sourcePoint, targetPoint, targetNormal, weight);
 					//ceres::CostFunction* costFunPlane = new ceres::AutoDiffCostFunction<PointToPlaneConstraint, 1, 6>(costPlane);
 
 					problem.AddResidualBlock(
 						costPlane,
 						nullptr, poseIncrement.getData()
 					);
-				}
+				}*/
 			}
 		}
 	}
 
 	private:
 		unsigned m_nIterations;
-};*/
+};

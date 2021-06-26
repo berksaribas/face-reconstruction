@@ -6,6 +6,7 @@
 #include <fstream>
 #include <vector>
 #include <Eigen.h>
+#include <renderer.h>
 
 std::string triangles_path = "../data/shape representer cells.bin"; // 3x56572
 
@@ -40,7 +41,7 @@ struct BFM {
 
     std::vector<int> landmarks;
 
-    
+    float* vertices;
 };
 
 struct Parameters {
@@ -98,6 +99,8 @@ BFM bfm_setup() {
 
     load_landmarks(bfm);
 
+    float* vertices = new float[85764];
+
     return bfm;
 }
 
@@ -110,8 +113,9 @@ Parameters bfm_mean_params() {
 }
 
 Parameters bfm_create_random_face() {
-    int seed;
-    std::cin >> seed;
+    int seed = 5;
+    //std::cout << "Enter a seed: ";
+    //std::cin >> seed;
     srand(seed);
 
     Parameters params;
@@ -143,4 +147,50 @@ void bfm_create_obj(BFM bfm, Parameters params) {
     }
 
     obj_file.close();
+}
+
+float* get_vertices(BFM bfm, Parameters params) {
+    MatrixXf shape_pca_var = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_var, 199, 1);
+    MatrixXf shape_pca_basis = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 199);
+
+    MatrixXf exp_pca_var = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 100, 1);
+    MatrixXf exp_pca_basis = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 100);
+
+    MatrixXf shape_result = shape_pca_basis * (shape_pca_var * params.shape_weights);
+    MatrixXf exp_result = exp_pca_basis * (exp_pca_var * params.exp_weights);
+    MatrixXf result = shape_result + exp_result;
+    MatrixXf mapped_vertices = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_mean, 85764, 1);
+
+    float* sum = new float[85764];
+    for (int i = 0; i < 85764; i ++) {
+        sum[i] = bfm.shape_mean[i] + bfm.exp_mean[i] - result(i);
+    }
+    return sum;
+}
+
+MatrixXf bfm_calc_2D_landmarks(BFM bfm, Parameters params, int width=800, int height=800, bool createImg=false) {
+    //We create a rendering context. Rendering context is not required if nothing is being rendered.
+    auto context = init_rendering_context(width, height);
+    //Creating the matrices for rotation and translation. Translating vertices with -400 on Z axis to make sure model is visible
+    Eigen::Matrix3f rotation;
+    rotation.setIdentity();
+    Eigen::Vector3f translation = { 0, 0, -400 };
+    //Creating the transformation matrix with given rotation and translation
+    auto transformation_matrix = calculate_transformation_matrix(translation, rotation);
+    //Transforming the vertices with the given transformation matrix and applying perspective projection
+    //Here we only transform the mean shape but in real application we will have something similar to random face generator in BFM.h
+    //auto transformed_vertices = calculate_transformation_perspective(width, height, transformation_matrix, bfm.shape_mean);
+    auto transformed_vertices = calculate_transformation_perspective(width, height, transformation_matrix, get_vertices(bfm, params));
+    //After having the transformed vertices there are two use cases, following command renders the image for DENSE term
+    auto rendered_result = render_mesh(context, transformed_vertices, bfm.triangles, bfm.color_mean, bfm.landmarks, true);
+    if (createImg) {
+        cv::imwrite("img.png", rendered_result);
+    }
+    //Following is for the sparse term, containing 2D landmarks:
+    //This is a 68x2 matrix, each row having x and y coordinates of landmarks
+    //Last parameter is for bottom left coordinate system, change it to false if you want top left.
+    auto landmarks = get_transformed_landmarks(width, height, transformed_vertices, bfm.landmarks, true); 
+    //std::cout << landmarks(0, 0) << " " << landmarks(0, 1) << "\n";
+    return landmarks;
+    //return MatrixXf::Zero();
 }

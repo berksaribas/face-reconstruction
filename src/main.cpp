@@ -2,14 +2,14 @@
 
 #include "FacialLandmarkDetection.h";
 #include "BFM.h";
-#include "CalcErrorTerm.h";
+//#include "CalcErrorTerm.h";
 #include "Renderer.h"
 
 #define DETECT_FACIAL_LANDMARKS		1
 #define SHOW_FACIAL_LANDMARKS		0
 
-//#define BFM_CREATE_RANDOM_FACE		1
-#define RENDERER_DEMO				
+#define BFM_CREATE_RANDOM_FACE		1
+//#define RENDERER_DEMO				
 
 int main(int argc, char** argv) {
 #ifdef DETECT_FACIAL_LANDMARKS
@@ -30,6 +30,7 @@ int main(int argc, char** argv) {
 	std::cout << "finished bfm setup" << std::endl;
 	Parameters params_rnd = bfm_create_random_face();
 	bfm_create_obj(bfm_rnd, params_rnd);
+	bfm_calc_2D_landmarks(bfm_rnd, params_rnd, 512, 512, true);
 #endif // BFM_CREATE_RANDOM_FACE
 
 #ifdef RENDERER_DEMO
@@ -38,7 +39,8 @@ int main(int argc, char** argv) {
 	Parameters params = bfm_mean_params();
 	//Setting width and height. in real applications this would be equal to input image width/height
 	//Probably we will crop the input image with the extents of landmarks
-	int width = 800;
+	bfm_calc_2D_landmarks(bfm, params, 512, 512, true);
+	/*int width = 800;
 	int height = 800;
 	//We create a rendering context. Rendering context is not required if nothing is being rendered.
 	auto context = init_rendering_context(width, height);
@@ -60,7 +62,7 @@ int main(int argc, char** argv) {
 	auto landmarks = get_transformed_landmarks(width, height, transformed_vertices, bfm.landmarks, true); 
 	std::cout << landmarks(0, 0) << " " << landmarks(0, 1) << "\n";
 	//Closing the rendering context
-	terminate_rendering_context();
+	terminate_rendering_context();>*/
 #endif
 
 #ifdef DETECT_FACIAL_LANDMARKS
@@ -72,8 +74,8 @@ int main(int argc, char** argv) {
 	else if (detectedLandmarks.size() > 1) {
 		std::cout << "Warning: More than one face has been detected" << std::endl;
 	}
-	Matrix4f Pose = GetPose(bfm, params, detectedLandmarks);
-	std::cout << Pose << std::endl;
+	//Matrix4f Pose = GetPose(bfm, params, detectedLandmarks);
+	//std::cout << Pose << std::endl;
 	//CalcSparseTerm(bfm.landmarks, params, detectedLandmarks);
 #endif // DETECT_FACIAL_LANDMARKS
 	return 0;

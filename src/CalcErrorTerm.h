@@ -13,31 +13,47 @@
 
 struct SparseCostFunction
 {
-	SparseCostFunction(const Point3D& point1_, const Weight& weight_)
-		: point1(point1_), weight(weight_)
+	SparseCostFunction(const BFM bfm_, const dlib::point& targetPoint_, const int srcPointIdx_, const Weight& weight_)
+		: m_bfm(bfm_), m_srcPointIdx(srcPointIdx_), m_targetPoint(targetPoint_), m_weight(weight_)
 	{
 	}
 
 	template<typename T>
-	bool operator()(const T* Transform, const T* parameters, T* residual) const
+	bool operator()(const T* shape_weights, const T* exp_weights, const T* col_weights, T* residual) const // const T* Transform, 
 	{
 		//auto cosinus = cos(angle[0]);
 		//auto sinus = sin(angle[0]);
 		//Point2D p_transformed = point1;
 		//T trans_x = cosinus * point1.x - sinus * point1.y + tx[0];
 		//T trans_y = sinus * point1.x + cosinus * point1.y + ty[0];
-		auto res1 = weight.w * (point1.x - point2.x);
-		auto res2 = weight.w * (point1.y - point2.y);
-		auto res2 = weight.w * (point1.z - point2.z);
+		Parameters params;
+		params.shape_weights = shape_weights;
+		params.exp_weights = exp_weights;
+		params.col_weights = col_weights;
+		MatrixXf landmarks = bfm_calc_2D_landmarks(m_bfm, params);
+		auto point2_eigen = landmarks.rows()[m_srcPointIdx];
+		std::cout << "Src point eigen: " + point2_eigen << std::endl;
+		Point2D point2(0, 0); // TODO!
+		auto res1 = m_weight.w * (m_targetPoint.x - point2.x);
+		auto res2 = m_weight.w * (m_targetPoint.y - point2.y);
+		//auto res2 = weight.w * (targetPoint.z - point2.z);
 		residual[0] = T(res1);
 		residual[1] = T(res2);
-		residual[1] = T(res2);
+		//residual[1] = T(res2);
 		return true;
 	}
 
+	static ceres::CostFunction* create(BFM bfm, const dlib::point& targetPoint, const int srcPointIdx, const Weight& weight) {
+		return new ceres::AutoDiffCostFunction<SparseCostFunction, 2, 199, 100, 199>(
+			new SparseCostFunction(bfm, targetPoint, srcPointIdx, weight)
+			);
+	}
+
 private:
-	const Point3D point1;
-	const Weight weight;
+	const BFM m_bfm;
+	const dlib::point m_targetPoint;
+	const int m_srcPointIdx;
+	const Weight m_weight;
 };
 
 float CalcSparseTerm(std::vector<int> model_landmarks, Parameters params, std::vector<dlib::full_object_detection> rgb_landmarks) {
