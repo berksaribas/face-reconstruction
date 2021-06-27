@@ -38,9 +38,9 @@ int main(int argc, char** argv) {
 	//We create a rendering context. Rendering context is not required if nothing is being rendered.
 	auto context = init_rendering_context(width, height);
 	//Creating the matrices for rotation and translation. Translating vertices with -400 on Z axis to make sure model is visible
-	Eigen::Matrix3f rotation;
+	Eigen::Matrix3d rotation;
 	rotation.setIdentity();
-	Eigen::Vector3f translation = { 0, 0, -400 };
+	Eigen::Vector3d translation = { 0, 0, -400 };
 	//Creating the transformation matrix with given rotation and translation
 	auto transformation_matrix = calculate_transformation_matrix(translation, rotation);
 	//Transforming the vertices with the given transformation matrix and applying perspective projection

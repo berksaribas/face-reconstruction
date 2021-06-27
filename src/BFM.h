@@ -26,17 +26,17 @@ std::string bfm_landmarks_path = "../data/Landmarks68_model2017-1_face12_nomouth
 struct BFM {
     int* triangles;
 
-    float* color_mean;
-    float* color_pca_var;
-    float* color_pca_basis;
+    double* color_mean;
+    double* color_pca_var;
+    double* color_pca_basis;
 
-    float* shape_mean;
-    float* shape_pca_var;
-    float* shape_pca_basis;
+    double* shape_mean;
+    double* shape_pca_var;
+    double* shape_pca_basis;
 
-    float* exp_mean;
-    float* exp_pca_var;
-    float* exp_pca_basis;
+    double* exp_mean;
+    double* exp_pca_var;
+    double* exp_pca_basis;
 
     std::vector<int> landmarks;
 };
@@ -72,21 +72,31 @@ void* load_binary_data(const char* filename) {
     return file_contents;
 }
 
+double* convert_to_double(float* data, int size) {
+    double* double_data = new double[size];
+    for (int i = 0; i < size; i++) {
+        double_data[i] = (double) data[i];
+    }
+    delete[] data;
+
+    return double_data;
+}
+
 BFM bfm_setup() {
     BFM bfm;
     bfm.triangles = (int*)load_binary_data(triangles_path.c_str());
 
-    bfm.color_mean = (float*)load_binary_data(color_mean_path.c_str());
-    bfm.color_pca_var = (float*)load_binary_data(color_pca_variance_path.c_str());
-    bfm.color_pca_basis = (float*)load_binary_data(color_pca_basis_path.c_str());
+    bfm.color_mean = convert_to_double((float*)load_binary_data(color_mean_path.c_str()), 85764);
+    bfm.color_pca_var = convert_to_double((float*)load_binary_data(color_pca_variance_path.c_str()), 199);
+    bfm.color_pca_basis = convert_to_double((float*)load_binary_data(color_pca_basis_path.c_str()), 85764*199);
 
-    bfm.shape_mean = (float*)load_binary_data(shape_mean_path.c_str());
-    bfm.shape_pca_var = (float*)load_binary_data(shape_pca_variance_path.c_str());
-    bfm.shape_pca_basis = (float*)load_binary_data(shape_pca_basis_path.c_str());
+    bfm.shape_mean = convert_to_double((float*)load_binary_data(shape_mean_path.c_str()), 85764);
+    bfm.shape_pca_var = convert_to_double((float*)load_binary_data(shape_pca_variance_path.c_str()), 199);
+    bfm.shape_pca_basis = convert_to_double((float*)load_binary_data(shape_pca_basis_path.c_str()), 85764 * 199);
 
-    bfm.exp_mean = (float*)load_binary_data(expression_mean_path.c_str());
-    bfm.exp_pca_var = (float*)load_binary_data(expression_pca_variance_path.c_str());
-    bfm.exp_pca_basis = (float*)load_binary_data(expression_pca_basis_path.c_str());
+    bfm.exp_mean = convert_to_double((float*)load_binary_data(expression_mean_path.c_str()), 85764);
+    bfm.exp_pca_var = convert_to_double((float*)load_binary_data(expression_pca_variance_path.c_str()), 100);
+    bfm.exp_pca_basis = convert_to_double((float*)load_binary_data(expression_pca_basis_path.c_str()), 85764 * 100);
 
     load_landmarks(bfm);
 
@@ -100,19 +110,18 @@ void bfm_create_random_face(BFM bfm) {
 
     std::ofstream obj_file("export.obj");
     
-    MatrixXf shape_pca_var =  Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_var, 199, 1);
-    MatrixXf shape_pca_basis = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 199);
+    MatrixXd shape_pca_var =  Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_var, 199, 1);
+    MatrixXd shape_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 199);
 
-    MatrixXf exp_pca_var = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 100, 1);
-    MatrixXf exp_pca_basis = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 100);
+    MatrixXd exp_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 100, 1);
+    MatrixXd exp_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 100);
 
-    VectorXf shape_weights = VectorXf::Random(199) * 0.02;
-    VectorXf exp_weights = VectorXf::Random(100) * 0.02;
+    VectorXd shape_weights = VectorXd::Random(199) * 0.02;
+    VectorXd exp_weights = VectorXd::Random(100) * 0.02;
 
-
-    MatrixXf shape_result = shape_pca_basis * (shape_pca_var * shape_weights);
-    MatrixXf exp_result = exp_pca_basis * (exp_pca_var * exp_weights);
-    MatrixXf result = shape_result + exp_result;
+    MatrixXd shape_result = shape_pca_basis * (shape_pca_var * shape_weights);
+    MatrixXd exp_result = exp_pca_basis * (exp_pca_var * exp_weights);
+    MatrixXd result = shape_result + exp_result;
 
     for (int i = 0; i < 85764; i += 3) {
         obj_file << "v " << bfm.shape_mean[i] + bfm.exp_mean[i] + result(i) << " " << bfm.shape_mean[i + 1] + bfm.exp_mean[i + 1] + result(i + 1) << " " << bfm.shape_mean[i + 2] + bfm.exp_mean[i + 2] + result(i + 2) << " " << bfm.color_mean[i] << " " << bfm.color_mean[i + 1] << " " << bfm.color_mean[i + 2] << "\n";
