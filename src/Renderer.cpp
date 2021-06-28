@@ -1,7 +1,7 @@
 #include "Renderer.h"
 #include <iostream>
 
-float deg2rad(float degrees) {
+double deg2rad(double degrees) {
     return degrees * 4.0 * atan(1.0) / 180.0;
 }
 
@@ -37,8 +37,8 @@ void terminate_rendering_context() {
     glfwTerminate();
 }
 
-Matrix4f calculate_transformation_matrix(Eigen::Vector3f translation, Eigen::Matrix3f rotation) {
-    Eigen::Matrix4f transformation;
+Matrix4d calculate_transformation_matrix(Eigen::Vector3d translation, Eigen::Matrix3d rotation) {
+    Eigen::Matrix4d transformation;
     transformation.setIdentity();
     transformation.block<3, 3>(0, 0) = rotation;
     transformation.block<3, 1>(0, 3) = translation;
@@ -46,15 +46,15 @@ Matrix4f calculate_transformation_matrix(Eigen::Vector3f translation, Eigen::Mat
     return transformation;
 }
 
-Matrix4f calculate_perspective_matrix(float angle, float aspect_ratio, float near, float far) {
-    float scale = tan(angle * 0.5 * M_PI / 180) * near;
+Matrix4d calculate_perspective_matrix(double angle, double aspect_ratio, double near, double far) {
+    double scale = tan(angle * 0.5 * M_PI / 180) * near;
 
-    float r = aspect_ratio * scale;
-    float l = -r;
-    float t = scale;
-    float b = -t;
+    double r = aspect_ratio * scale;
+    double l = -r;
+    double t = scale;
+    double b = -t;
 
-    Matrix4f projection_matrix;
+    Matrix4d projection_matrix;
     projection_matrix << 2 * near / (r - l), 0, (r + l) / (r - l), 0,
         0, 2 * near / (t - b), (t + b) / (t - b), 0,
         0, 0, -(far + near) / (far - near), -(2 * far * near) / (far - near),
@@ -63,32 +63,32 @@ Matrix4f calculate_perspective_matrix(float angle, float aspect_ratio, float nea
     return projection_matrix;
 }
 
-MatrixXf calculate_transformation_perspective(int width, int height, Matrix4f transformation_matrix, float* vertices) {
+MatrixXd calculate_transformation_perspective(int width, int height, Matrix4d transformation_matrix, double* vertices) {
     //Transposing Vertices and adding an extra column for W
-    MatrixXf mapped_vertices = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(vertices, 28588, 3);
+    MatrixXd mapped_vertices = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(vertices, 28588, 3);
     mapped_vertices.conservativeResize(mapped_vertices.rows(), mapped_vertices.cols() + 1);
     mapped_vertices.col(3).fill(1);
     mapped_vertices.transposeInPlace();
 
     //Transformation Matrix
-    MatrixXf result = transformation_matrix * mapped_vertices;
+    MatrixXd result = transformation_matrix * mapped_vertices;
 
     //Projecting
-    float ar = (float)width / (float)height;
-    float n = 0.1;
-    float f = -1;
-    Matrix4f projection_matrix = calculate_perspective_matrix(45, ar, n, f);
+    double ar = (double)width / (double)height;
+    double n = 0.1;
+    double f = -1;
+    Matrix4d projection_matrix = calculate_perspective_matrix(45, ar, n, f);
     result = projection_matrix * result;
     
     result.transposeInPlace();
     return result;
 }
 
-MatrixXf get_transformed_landmarks(int width, int height, MatrixXf vertices, std::vector<int> landmarks, bool bottom_left) {
-    MatrixXf transformed_landmarks(landmarks.size(), 2);
+MatrixXd get_transformed_landmarks(int width, int height, MatrixXd vertices, std::vector<int> landmarks, bool bottom_left) {
+    MatrixXd transformed_landmarks(landmarks.size(), 2);
     for (int i = 0; i < landmarks.size(); i++) {
         int vertex_index = landmarks[i];
-        float w = vertices(vertex_index, 3);
+        double w = vertices(vertex_index, 3);
 
         transformed_landmarks(i, 0) = (vertices(vertex_index, 0) / w + 1) / 2 * width;
         transformed_landmarks(i, 1) = (vertices(vertex_index, 1) / w + 1) / 2 * height;
@@ -101,7 +101,7 @@ MatrixXf get_transformed_landmarks(int width, int height, MatrixXf vertices, std
     return transformed_landmarks;
 }
 
-cv::Mat render_mesh(GLFWwindow* window, MatrixXf vertices, int* triangles, float* colors, std::vector<int> landmarks, bool draw_landmarks) {
+cv::Mat render_mesh(GLFWwindow* window, MatrixXd vertices, int* triangles, double* colors, std::vector<int> landmarks, bool draw_landmarks) {
     int width, height;
     glfwGetWindowSize(window, &width, &height);
 
@@ -113,10 +113,10 @@ cv::Mat render_mesh(GLFWwindow* window, MatrixXf vertices, int* triangles, float
         for (int t = 0; t < 3; t++) {
             int vertex_index = triangles[i + t * 56572];
 
-            float w = vertices(vertex_index, 3);
+            double w = vertices(vertex_index, 3);
 
-            glColor3f(colors[vertex_index * 3], colors[vertex_index * 3 + 1], colors[vertex_index * 3 + 2]);
-            glVertex3f(vertices(vertex_index, 0) / w, vertices(vertex_index, 1) / w, vertices(vertex_index, 2) / w);
+            glColor3d(colors[vertex_index * 3], colors[vertex_index * 3 + 1], colors[vertex_index * 3 + 2]);
+            glVertex3d(vertices(vertex_index, 0) / w, vertices(vertex_index, 1) / w, vertices(vertex_index, 2) / w);
         }
     }
     glEnd();
@@ -126,9 +126,9 @@ cv::Mat render_mesh(GLFWwindow* window, MatrixXf vertices, int* triangles, float
         glBegin(GL_POINTS);
         for (int i = 0; i < landmarks.size(); i++) {
             int vertex_index = landmarks[i];
-            float w = vertices(vertex_index, 3);
-            glColor3f(1, 0, 0);
-            glVertex3f(vertices(vertex_index, 0) / w, vertices(vertex_index, 1) / w, vertices(vertex_index, 2) / w);
+            double w = vertices(vertex_index, 3);
+            glColor3d(1, 0, 0);
+            glVertex3d(vertices(vertex_index, 0) / w, vertices(vertex_index, 1) / w, vertices(vertex_index, 2) / w);
         }
         glEnd();
     }
