@@ -8,21 +8,21 @@
 #include <Eigen.h>
 #include <renderer.h>
 
-std::string triangles_path = "../data/shape representer cells.bin"; // 3x56572
+static std::string triangles_path = "../data/shape representer cells.bin"; // 3x56572
 
-std::string color_mean_path = "../data/color model mean.bin"; // 85764
-std::string color_pca_variance_path = "../data/color model pcaVariance.bin"; // 199
-std::string color_pca_basis_path = "../data/color model pcaBasis.bin"; // 85764x199
+static std::string color_mean_path = "../data/color model mean.bin"; // 85764
+static std::string color_pca_variance_path = "../data/color model pcaVariance.bin"; // 199
+static std::string color_pca_basis_path = "../data/color model pcaBasis.bin"; // 85764x199
 
-std::string shape_mean_path = "../data/shape model mean.bin"; // 85764
-std::string shape_pca_variance_path = "../data/shape model pcaVariance.bin"; // 199
-std::string shape_pca_basis_path = "../data/shape model pcaBasis.bin"; // 85764x199
+static std::string shape_mean_path = "../data/shape model mean.bin"; // 85764
+static std::string shape_pca_variance_path = "../data/shape model pcaVariance.bin"; // 199
+static std::string shape_pca_basis_path = "../data/shape model pcaBasis.bin"; // 85764x199
 
-std::string expression_mean_path = "../data/expression model mean.bin"; // 85764
-std::string expression_pca_variance_path = "../data/expression model pcaVariance.bin"; // 100
-std::string expression_pca_basis_path = "../data/expression model pcaBasis.bin"; // 85764x100
+static std::string expression_mean_path = "../data/expression model mean.bin"; // 85764
+static std::string expression_pca_variance_path = "../data/expression model pcaVariance.bin"; // 100
+static std::string expression_pca_basis_path = "../data/expression model pcaBasis.bin"; // 85764x100
 
-std::string bfm_landmarks_path = "../data/Landmarks68_model2017-1_face12_nomouth.anl";
+static std::string bfm_landmarks_path = "../data/Landmarks68_model2017-1_face12_nomouth.anl";
 
 struct BFM {
     int* triangles;
@@ -50,7 +50,7 @@ struct Parameters {
     VectorXd col_weights;
 };
 
-void load_landmarks(BFM& bfm) {
+static void load_landmarks(BFM& bfm) {
     std::ifstream infile(bfm_landmarks_path);
     int a;
     while (infile >> a)
@@ -60,7 +60,7 @@ void load_landmarks(BFM& bfm) {
     infile.close();
 }
 
-void* load_binary_data(const char* filename) {
+static void* load_binary_data(const char* filename) {
     FILE* in_file = fopen(filename, "rb");
     if (!in_file) {
         perror("fopen");
@@ -81,7 +81,7 @@ void* load_binary_data(const char* filename) {
     return file_contents;
 }
 
-double* convert_to_double(float* data, int size) {
+static double* convert_to_double(float* data, int size) {
     double* double_data = new double[size];
     for (int i = 0; i < size; i++) {
         double_data[i] = (double) data[i];
@@ -91,7 +91,7 @@ double* convert_to_double(float* data, int size) {
     return double_data;
 }
 
-BFM bfm_setup() {
+static BFM bfm_setup() {
     BFM bfm;
     bfm.triangles = (int*)load_binary_data(triangles_path.c_str());
 
@@ -114,7 +114,7 @@ BFM bfm_setup() {
     return bfm;
 }
 
-Parameters bfm_mean_params() {
+static Parameters bfm_mean_params() {
     Parameters params;
     params.shape_weights = VectorXd::Zero(199) * 0.02;
     params.exp_weights = VectorXd::Zero(100) * 0.02;
@@ -122,7 +122,7 @@ Parameters bfm_mean_params() {
     return params;
 }
 
-Parameters bfm_create_random_face() {
+static Parameters bfm_create_random_face() {
     int seed = 5;
     //std::cout << "Enter a seed: ";
     //std::cin >> seed;
@@ -135,31 +135,25 @@ Parameters bfm_create_random_face() {
     return params;
 }
 
-void bfm_create_obj(BFM bfm, Parameters params) {
+static void bfm_create_obj(BFM bfm, Parameters params) {
     std::ofstream obj_file("export.obj");
 
-    /*MatrixXf shape_pca_var = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_var, 199, 1);
-    MatrixXf shape_pca_basis = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 199);
-
-    MatrixXf exp_pca_var = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 100, 1);
-    MatrixXf exp_pca_basis = Map<Matrix<float, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 100);
-
-    MatrixXf shape_result = shape_pca_basis * (shape_pca_var * params.shape_weights);
-    MatrixXf exp_result = exp_pca_basis * (exp_pca_var * params.exp_weights);
-    MatrixXf result = shape_result + exp_result;*/
-    
     MatrixXd shape_pca_var =  Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_var, 199, 1);
     MatrixXd shape_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 199);
 
-    MatrixXd exp_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 100, 1);
-    MatrixXd exp_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 100);
+    MatrixXd exp_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_var, 100, 1);
+    MatrixXd exp_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_basis, 85764, 100);
 
-    MatrixXd shape_result = shape_pca_basis * (shape_pca_var * params.shape_weights);
-    MatrixXd exp_result = exp_pca_basis * (exp_pca_var * params.exp_weights);
+    MatrixXd shape_result = shape_pca_basis * (shape_pca_var.cwiseSqrt().cwiseProduct(params.shape_weights));
+    MatrixXd exp_result = exp_pca_basis * (exp_pca_var.cwiseSqrt().cwiseProduct(params.exp_weights));
     MatrixXd result = shape_result + exp_result;
 
+    MatrixXd color_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_var, 199, 1);
+    MatrixXd color_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_basis, 85764, 199);
+    MatrixXd color_result = color_pca_basis * (color_pca_var.cwiseSqrt().cwiseProduct(params.col_weights));
+
     for (int i = 0; i < 85764; i += 3) {
-        obj_file << "v " << bfm.shape_mean[i] + bfm.exp_mean[i] + result(i) << " " << bfm.shape_mean[i + 1] + bfm.exp_mean[i + 1] + result(i + 1) << " " << bfm.shape_mean[i + 2] + bfm.exp_mean[i + 2] + result(i + 2) << " " << bfm.color_mean[i] << " " << bfm.color_mean[i + 1] << " " << bfm.color_mean[i + 2] << "\n";
+        obj_file << "v " << bfm.shape_mean[i] + bfm.exp_mean[i] + result(i) << " " << bfm.shape_mean[i + 1] + bfm.exp_mean[i + 1] + result(i + 1) << " " << bfm.shape_mean[i + 2] + bfm.exp_mean[i + 2] + result(i + 2) << " " << bfm.color_mean[i] + color_result(i) << " " << bfm.color_mean[i + 1] + color_result(i + 1) << " " << bfm.color_mean[i + 2] + color_result(i+2) << "\n";
     }
 
     for (int i = 0; i < 56572; i++) {
@@ -169,15 +163,15 @@ void bfm_create_obj(BFM bfm, Parameters params) {
     obj_file.close();
 }
 
-double* get_vertices(BFM bfm, Parameters params) {
+static double* get_vertices(BFM bfm, Parameters params) {
     MatrixXd shape_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_var, 199, 1);
     MatrixXd shape_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 199);
 
-    MatrixXd exp_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 100, 1);
-    MatrixXd exp_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 100);
+    MatrixXd exp_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_var, 100, 1);
+    MatrixXd exp_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_basis, 85764, 100);
 
-    MatrixXd shape_result = shape_pca_basis * (shape_pca_var * params.shape_weights);
-    MatrixXd exp_result = exp_pca_basis * (exp_pca_var * params.exp_weights);
+    MatrixXd shape_result = shape_pca_basis * (shape_pca_var.cwiseSqrt().cwiseProduct(params.shape_weights));
+    MatrixXd exp_result = exp_pca_basis * (exp_pca_var.cwiseSqrt().cwiseProduct(params.exp_weights));
     MatrixXd result = shape_result + exp_result;
     MatrixXd mapped_vertices = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_mean, 85764, 1);
 
@@ -188,7 +182,20 @@ double* get_vertices(BFM bfm, Parameters params) {
     return sum;
 }
 
-MatrixXd bfm_calc_2D_landmarks(BFM bfm, Parameters params, int width=800, int height=800, bool createImg=false) {
+static double* get_colors(BFM bfm, Parameters params) {
+    MatrixXd color_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_var, 199, 1);
+    MatrixXd color_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_basis, 85764, 199);
+
+    MatrixXd color_result = color_pca_basis * (color_pca_var.cwiseSqrt().cwiseProduct(params.col_weights));
+
+    double* sum = new double[85764];
+    for (int i = 0; i < 85764; i++) {
+        sum[i] = bfm.color_mean[i] + color_result(i);
+    }
+    return sum;
+}
+
+static MatrixXd bfm_calc_2D_landmarks(BFM bfm, Parameters params, int width=800, int height=800, bool createImg=false) {
     //We create a rendering context. Rendering context is not required if nothing is being rendered.
     auto context = init_rendering_context(width, height);
     //Creating the matrices for rotation and translation. Translating vertices with -400 on Z axis to make sure model is visible
@@ -196,11 +203,11 @@ MatrixXd bfm_calc_2D_landmarks(BFM bfm, Parameters params, int width=800, int he
     rotation.setIdentity();
     Eigen::Vector3d translation = { 0, 0, -400 }; // TODO: can we generalize 400 to width / 2?
     //Creating the transformation matrix with given rotation and translation
-    auto transformation_matrix = calculate_transformation_matrix(translation, rotation);
+    auto transformation_matrix = calculate_transformation_matrix<double>(translation, rotation);
     //Transforming the vertices with the given transformation matrix and applying perspective projection
     //Here we only transform the mean shape but in real application we will have something similar to random face generator in BFM.h
     //auto transformed_vertices = calculate_transformation_perspective(width, height, transformation_matrix, bfm.shape_mean);
-    auto transformed_vertices = calculate_transformation_perspective(width, height, transformation_matrix, get_vertices(bfm, params));
+    auto transformed_vertices = calculate_transformation_perspective((double)width, (double)height, transformation_matrix, get_vertices(bfm, params));
     //After having the transformed vertices there are two use cases, following command renders the image for DENSE term
     auto rendered_result = render_mesh(context, transformed_vertices, bfm.triangles, bfm.color_mean, bfm.landmarks, true);
     if (createImg) {

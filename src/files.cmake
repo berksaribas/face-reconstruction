@@ -4,8 +4,10 @@ set(HEADER_FILES
     BFM.h
     FacialLandmarkDetection.h
     Renderer.h
+    DenseOptimizer.h
 )
 set(SOURCE_FILES 
     FreeImageHelper.cpp
     Renderer.cpp
+    DenseOptimizer.cpp
 )

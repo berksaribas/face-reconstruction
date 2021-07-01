@@ -1,10 +1,6 @@
 #include "Renderer.h"
 #include <iostream>
 
-double deg2rad(double degrees) {
-    return degrees * 4.0 * atan(1.0) / 180.0;
-}
-
 GLFWwindow* init_rendering_context(int width, int height) {
     GLFWwindow* window;
 
@@ -37,15 +33,6 @@ void terminate_rendering_context() {
     glfwTerminate();
 }
 
-Matrix4d calculate_transformation_matrix(Eigen::Vector3d translation, Eigen::Matrix3d rotation) {
-    Eigen::Matrix4d transformation;
-    transformation.setIdentity();
-    transformation.block<3, 3>(0, 0) = rotation;
-    transformation.block<3, 1>(0, 3) = translation;
-
-    return transformation;
-}
-
 Matrix4d calculate_perspective_matrix(double angle, double aspect_ratio, double near, double far) {
     double scale = tan(angle * 0.5 * M_PI / 180) * near;
 
@@ -61,27 +48,6 @@ Matrix4d calculate_perspective_matrix(double angle, double aspect_ratio, double 
         0, 0, -1, 0;
 
     return projection_matrix;
-}
-
-MatrixXd calculate_transformation_perspective(int width, int height, Matrix4d transformation_matrix, double* vertices) {
-    //Transposing Vertices and adding an extra column for W
-    MatrixXd mapped_vertices = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(vertices, 28588, 3);
-    mapped_vertices.conservativeResize(mapped_vertices.rows(), mapped_vertices.cols() + 1);
-    mapped_vertices.col(3).fill(1);
-    mapped_vertices.transposeInPlace();
-
-    //Transformation Matrix
-    MatrixXd result = transformation_matrix * mapped_vertices;
-
-    //Projecting
-    double ar = (double)width / (double)height;
-    double n = 0.1;
-    double f = -1;
-    Matrix4d projection_matrix = calculate_perspective_matrix(45, ar, n, f);
-    result = projection_matrix * result;
-    
-    result.transposeInPlace();
-    return result;
 }
 
 MatrixXd get_transformed_landmarks(int width, int height, MatrixXd vertices, std::vector<int> landmarks, bool bottom_left) {

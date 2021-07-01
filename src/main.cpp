@@ -4,14 +4,26 @@
 #include "BFM.h";
 //#include "CalcErrorTerm.h";
 #include "Renderer.h"
+#include "DenseOptimizer.h"
 
-#define DETECT_FACIAL_LANDMARKS		1
-#define SHOW_FACIAL_LANDMARKS		0
+//#define DETECT_FACIAL_LANDMARKS		1
+//#define SHOW_FACIAL_LANDMARKS		0
 
-#define BFM_CREATE_RANDOM_FACE		1
-//#define RENDERER_DEMO				
+//#define BFM_CREATE_RANDOM_FACE		1
+//#define RENDERER_DEMO		
+
+#define CONSTRUCT_FACE
 
 int main(int argc, char** argv) {
+#ifdef CONSTRUCT_FACE
+	cv::Mat img = cv::imread("../data/forsan.jpg");
+	std::vector<dlib::full_object_detection> detectedLandmarks;
+	detectedLandmarks = DetectLandmarks("../data/forsan.jpg", true, true);
+	DenseOptimizer optimizer;
+	optimizer.optimize(img, detectedLandmarks);
+	return 1;
+#endif
+
 #ifdef DETECT_FACIAL_LANDMARKS
 	if (argc < 4) {
 		std::cout << "too little arguments. Provide a valid path to the data\n";
