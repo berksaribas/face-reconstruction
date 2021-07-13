@@ -1,4 +1,5 @@
 #include "DenseOptimizer.h"
+#include "RegularizationTerm.h"
 
 void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detection> detected_landmarks)
 {
@@ -61,6 +62,18 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 		options.num_threads = 12;
 		options.minimizer_progress_to_stdout = true;
 
+		ceres::CostFunction* shape_cost = new ceres::AutoDiffCostFunction<ShapeCostFunction, 199, 199>(
+				new ShapeCostFunction(bfm)
+				);
+		sparse_problem.AddResidualBlock(shape_cost, NULL, params.shape_weights.data());
+
+		ceres::CostFunction* expression_cost = new ceres::AutoDiffCostFunction<ExpressionCostFunction, 100, 100>(
+				new ExpressionCostFunction(bfm)
+				);
+		sparse_problem.AddResidualBlock(expression_cost, NULL, params.exp_weights.data());
+
+
+
 		for (int j = 0; j < 68; j++) {
 			Vector2d detected_landmark = { detected_landmarks[0].part(j).x(), detected_landmarks[0].part(j).y() };
 
@@ -81,6 +94,7 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 			sparse_problem.SetParameterUpperBound(params.exp_weights.data(), j, 1);
 			sparse_problem.SetParameterLowerBound(params.exp_weights.data(), j, -1);
 		}
+		
 
 		ceres::Solver::Summary summary;
 		ceres::Solve(options, &sparse_problem, &summary);
@@ -97,13 +111,18 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 		options.num_threads = 12;
 		options.minimizer_progress_to_stdout = true;
 
+		ceres::CostFunction* color_cost = new ceres::AutoDiffCostFunction<ColorCostFunction, 199, 199>(
+				new ColorCostFunction(bfm)
+				);
+		sparse_problem.AddResidualBlock(color_cost, NULL,params.col_weights.data());
+
+
 		for (int j = 0; j < 28588; j++) {
 			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<DenseRGBCost, 3, 4, 3, 199, 100, 199>(
 				new DenseRGBCost(bfm, &image, j)
 				);
 			sparse_problem.AddResidualBlock(cost_function, NULL, rotation, translation.data(), params.shape_weights.data(), params.exp_weights.data(), params.col_weights.data());
 		}
-
 		sparse_problem.SetParameterBlockConstant(params.shape_weights.data());
 		sparse_problem.SetParameterBlockConstant(params.exp_weights.data());
 		sparse_problem.SetParameterBlockConstant(rotation);

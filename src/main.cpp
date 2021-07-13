@@ -5,6 +5,7 @@
 //#include "CalcErrorTerm.h";
 #include "Renderer.h"
 #include "DenseOptimizer.h"
+#include "RGBD_Image.h"
 
 //#define DETECT_FACIAL_LANDMARKS		1
 //#define SHOW_FACIAL_LANDMARKS		0
@@ -17,6 +18,7 @@
 int main(int argc, char** argv) {
 #ifdef CONSTRUCT_FACE
 	cv::Mat img = cv::imread("../data/forsan.jpg");
+	RGBD_Image *rgbd = new RGBD_Image("../data/RGBD_data/Test1/000_00_image.png","../data/RGBD_data/Test1/000_00_cloud.bin");
 	std::vector<dlib::full_object_detection> detectedLandmarks;
 	detectedLandmarks = DetectLandmarks("../data/forsan.jpg", true, true);
 	DenseOptimizer optimizer;
@@ -35,7 +37,7 @@ int main(int argc, char** argv) {
 	std::vector<dlib::full_object_detection> detectedLandmarks;
 	detectedLandmarks = DetectLandmarks(path, SHOW_FACIAL_LANDMARKS, true);
 	std::cout << "done detecting landmarks" << std::endl;
-#endif // DETECT_FACIAL_LANDMARKS
+#endif // DETECT_FACIAL_LANDMARKS 
 
 #ifdef BFM_CREATE_RANDOM_FACE
 	auto bfm_rnd = bfm_setup();

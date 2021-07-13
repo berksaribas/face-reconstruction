@@ -2,6 +2,7 @@
 #include <vector>
 #include <dlib/image_processing/frontal_face_detector.h>
 #include <Eigen/Eigen>
+#include <FacialLandmarkDetection.h>
 #include <stdio.h>
 #include <BFM.h>
 #include <iostream>     
@@ -16,13 +17,19 @@ class RGBD_Image {
 public:
 	std::vector<dlib::full_object_detection> landmarks;
 	std::vector<Point3D> points;
-	// TODO: save the depth image
+	cv::Mat image;
 
-	RGBD_Image() {};
+	RGBD_Image(char * rgb_path,char * depth_path) {
+		this->image = cv::imread(rgb_path);
+		this->landmarks = DetectLandmarks(rgb_path, true, true);
+		load_data(depth_path);
+	};
 
-	double GetDepth(int x, int y) {
-		// TODO: implement
-		//landmarks[0].part(0).
+	double get_depth(int x, int y) {
+		assert(!this->points.empty());
+		for(Point3D p : this->points){
+			if((int)p.x == x && (int)p.y == y) return p.z;
+		}
 		return 0.; 
 	}
 	//Method to load the binary data into a vector of 3D points where x and y are already projected into 2D	
@@ -52,9 +59,7 @@ public:
 				Point3D p{output[0],output[1],output[2]};
 				//If there is no depth data at this pixel 
 				if(std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z)){   
-					p.x = 0.0;
-					p.y = 0.0;
-					p.z = 0.0;
+					continue;
 				}
 
 				points.push_back(p);
