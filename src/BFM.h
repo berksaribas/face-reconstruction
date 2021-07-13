@@ -209,7 +209,7 @@ static MatrixXd bfm_calc_2D_landmarks(BFM bfm, Parameters params, int width=800,
     //auto transformed_vertices = calculate_transformation_perspective(width, height, transformation_matrix, bfm.shape_mean);
     auto transformed_vertices = calculate_transformation_perspective((double)width, (double)height, transformation_matrix, get_vertices(bfm, params));
     //After having the transformed vertices there are two use cases, following command renders the image for DENSE term
-    auto rendered_result = render_mesh(context, transformed_vertices, bfm.triangles, bfm.color_mean, bfm.landmarks, true);
+    auto rendered_result = render_mesh(context, transformed_vertices, bfm.triangles, get_colors(bfm, params), bfm.landmarks, true);
     if (createImg) {
         cv::imwrite("img.png", rendered_result);
     }
