@@ -144,13 +144,13 @@ static void bfm_create_obj(BFM bfm, Parameters params) {
     MatrixXd exp_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_var, 100, 1);
     MatrixXd exp_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_basis, 85764, 100);
 
-    MatrixXd shape_result = shape_pca_basis * (shape_pca_var.cwiseSqrt().cwiseProduct(params.shape_weights));
-    MatrixXd exp_result = exp_pca_basis * (exp_pca_var.cwiseSqrt().cwiseProduct(params.exp_weights));
+    MatrixXd shape_result = shape_pca_basis * params.shape_weights;
+    MatrixXd exp_result = exp_pca_basis * params.exp_weights;
     MatrixXd result = shape_result + exp_result;
 
     MatrixXd color_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_var, 199, 1);
     MatrixXd color_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_basis, 85764, 199);
-    MatrixXd color_result = color_pca_basis * (color_pca_var.cwiseSqrt().cwiseProduct(params.col_weights));
+    MatrixXd color_result = color_pca_basis * params.col_weights;
 
     for (int i = 0; i < 85764; i += 3) {
         obj_file << "v " << bfm.shape_mean[i] + bfm.exp_mean[i] + result(i) << " " << bfm.shape_mean[i + 1] + bfm.exp_mean[i + 1] + result(i + 1) << " " << bfm.shape_mean[i + 2] + bfm.exp_mean[i + 2] + result(i + 2) << " " << bfm.color_mean[i] + color_result(i) << " " << bfm.color_mean[i + 1] + color_result(i + 1) << " " << bfm.color_mean[i + 2] + color_result(i+2) << "\n";
@@ -170,8 +170,8 @@ static double* get_vertices(BFM bfm, Parameters params) {
     MatrixXd exp_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_var, 100, 1);
     MatrixXd exp_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_basis, 85764, 100);
 
-    MatrixXd shape_result = shape_pca_basis * (shape_pca_var.cwiseSqrt().cwiseProduct(params.shape_weights));
-    MatrixXd exp_result = exp_pca_basis * (exp_pca_var.cwiseSqrt().cwiseProduct(params.exp_weights));
+    MatrixXd shape_result = shape_pca_basis * params.shape_weights;
+    MatrixXd exp_result = exp_pca_basis * params.exp_weights;
     MatrixXd result = shape_result + exp_result;
     MatrixXd mapped_vertices = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_mean, 85764, 1);
 
@@ -186,7 +186,7 @@ static double* get_colors(BFM bfm, Parameters params) {
     MatrixXd color_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_var, 199, 1);
     MatrixXd color_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_basis, 85764, 199);
 
-    MatrixXd color_result = color_pca_basis * (color_pca_var.cwiseSqrt().cwiseProduct(params.col_weights));
+    MatrixXd color_result = color_pca_basis * params.col_weights;
 
     double* sum = new double[85764];
     for (int i = 0; i < 85764; i++) {
@@ -209,7 +209,7 @@ static MatrixXd bfm_calc_2D_landmarks(BFM bfm, Parameters params, int width=800,
     //auto transformed_vertices = calculate_transformation_perspective(width, height, transformation_matrix, bfm.shape_mean);
     auto transformed_vertices = calculate_transformation_perspective((double)width, (double)height, transformation_matrix, get_vertices(bfm, params));
     //After having the transformed vertices there are two use cases, following command renders the image for DENSE term
-    auto rendered_result = render_mesh(context, transformed_vertices, bfm.triangles, get_colors(bfm, params), bfm.landmarks, true);
+    auto rendered_result = render_mesh(context, width, height, transformed_vertices, bfm.triangles, get_colors(bfm, params), bfm.landmarks, true);
     if (createImg) {
         cv::imwrite("img.png", rendered_result);
     }

@@ -11,7 +11,7 @@
 #include <dlib/image_processing/render_face_detections.h>
 #include <dlib/image_processing.h>
 
-std::vector<dlib::full_object_detection> DetectLandmarks(char* imagePath="", bool presentLandmarks=false, bool holdImg=true) {
+static std::vector<dlib::full_object_detection> DetectLandmarks(char* imagePath="", bool presentLandmarks=false, bool holdImg=true) {
     std::vector<dlib::full_object_detection> empty;
     try
     {

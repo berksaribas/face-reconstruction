@@ -1,5 +1,7 @@
 #pragma once
 #define GLFW_INCLUDE_GLU
+#define GLEW_STATIC
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <Eigen.h>
 #include <opencv2/core.hpp>
@@ -8,7 +10,7 @@
 #include <ceres/ceres.h>
 
 GLFWwindow* init_rendering_context(int width, int height);
-cv::Mat render_mesh(GLFWwindow* window, MatrixXd vertices, int* triangles, double* colors, std::vector<int> landmarks, bool draw_landmarks);
+cv::Mat render_mesh(GLFWwindow* window, int width, int height, MatrixXd vertices, int* triangles, double* colors, std::vector<int> landmarks, bool draw_landmarks, bool render_triangle_id = false);
 void terminate_rendering_context();
 Matrix4d calculate_perspective_matrix(double angle, double aspect_ratio, double near, double far);
 MatrixXd get_transformed_landmarks(int width, int height, MatrixXd vertices, std::vector<int> landmarks, bool bottom_left);
@@ -41,7 +43,7 @@ static Matrix<T, -1, -1> calculate_transformation_perspective(double width, doub
     //Projecting
     double ar = width / height;
     double n = 0.1;
-    double f = 1000;
+    double f = 5000;
     Matrix<T, 4, 4> projection_matrix = calculate_perspective_matrix(45, ar, n, f).cast<T>();
     result = projection_matrix * result;
 
