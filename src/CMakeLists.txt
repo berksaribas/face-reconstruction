@@ -13,6 +13,7 @@ set(Ceres_INCLUDE_DIR ${Ceres_DIR}/../include)
 set(dlib_DIR ${LIBRARY_DIR}/Dlib/lib/cmake/dlib CACHE PATH "Path to Ceres build folder")
 set(dlib_INCLUDE_DIR ${LIBRARY_DIR}/Dlib/include CACHE PATH "Path to glog source folder")
 set(OpenCV_DIR "C:/opencv/build")
+#set(OpenCV_DIR "C:/OpenCV_3_4_14/opencv/build")
 
 # OpenGL stuff
 set(GLFW_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../glfw/include CACHE PATH "Path to glfw include")
