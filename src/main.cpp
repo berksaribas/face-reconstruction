@@ -19,13 +19,29 @@ int main(int argc, char** argv) {
 #ifdef CONSTRUCT_FACE
 	DenseOptimizer optimizer;
 	
-	cv::Mat img = cv::imread("../data/juicer.jpg");
+	cv::Mat img = cv::imread("../data/tom.jpg");
 	std::vector<dlib::full_object_detection> detectedLandmarks;
-	detectedLandmarks = DetectLandmarks("../data/juicer.jpg", true, true);
+	detectedLandmarks = DetectLandmarks("../data/tom.jpg", true, true);
 	optimizer.optimize(img, detectedLandmarks);
 
 	//RGBD_Image *rgbd = new RGBD_Image("../data/RGBD_data/Test1/004_00_image.png","../data/RGBD_data/Test1/004_00_cloud.bin");
 	//optimizer.optimize(rgbd, rgbd->landmarks);
+	return 1;
+#endif
+
+#ifdef TRANSFER_EXP
+	DenseOptimizer optimizer;
+	DenseOptimizer optimizer2;
+
+	cv::Mat img = cv::imread("../data/berk2.jpg");
+	std::vector<dlib::full_object_detection> detectedLandmarks;
+	detectedLandmarks = DetectLandmarks("../data/berk2.jpg", true, true);
+	auto params = optimizer.optimize(img, detectedLandmarks, true);
+
+	cv::Mat img2 = cv::imread("../data/juicer.jpg");
+	std::vector<dlib::full_object_detection> detectedLandmarks2;
+	detectedLandmarks2 = DetectLandmarks("../data/juicer.jpg", true, true);
+	optimizer2.optimize(img2, detectedLandmarks2, false, &params.exp_weights);
 	return 1;
 #endif
 

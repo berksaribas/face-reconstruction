@@ -60,7 +60,7 @@ static Matrix<T, -1, -1> calculate_transformation_perspective(double width, doub
     //Projecting
     T ar = T(width / height);
     T n = T(0.1);
-    T f = T(5000.0);
+    T f = T(10000.0);
     Matrix<T, 4, 4> projection_matrix = calculate_perspective_matrix(fov, ar, n, f);
     result = projection_matrix * result;
 

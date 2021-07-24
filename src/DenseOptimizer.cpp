@@ -5,7 +5,7 @@
 #define EXPRESSION_REGULARIZATION_WEIGHT 8
 #define COLOR_REGULARIZATION_WEIGHT 0.0007
 
-Parameters DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detection> detected_landmarks, bool skip_color)
+Parameters DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detection> detected_landmarks, bool skip_color, VectorXd* exp_weights)
 {
 	BFM bfm = bfm_setup();
 
@@ -40,7 +40,6 @@ Parameters DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object
 
 		ceres::LocalParameterization* quaternion_parameterization = new ceres::QuaternionParameterization;
 		sparse_problem.SetParameterization(rotation, quaternion_parameterization);
-
 
 		// keep the shape and expression constant
 		sparse_problem.SetParameterBlockConstant(params.shape_weights.data());
@@ -170,6 +169,11 @@ Parameters DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object
 		ceres::Solve(options, &sparse_problem, &summary);
 		std::cout << summary.BriefReport() << std::endl;
 
+		render(image, bfm, params, translation, rotation, fov[0], true);
+	}
+
+	if (exp_weights != nullptr) {
+		params.exp_weights = *exp_weights;
 		render(image, bfm, params, translation, rotation, fov[0], true);
 	}
 
