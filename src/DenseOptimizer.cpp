@@ -5,7 +5,7 @@
 #define EXPRESSION_REGULARIZATION_WEIGHT 8
 #define COLOR_REGULARIZATION_WEIGHT 0.0007
 
-void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detection> detected_landmarks)
+Parameters DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detection> detected_landmarks, bool skip_color)
 {
 	BFM bfm = bfm_setup();
 
@@ -94,6 +94,10 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 		render(image, bfm, params, translation, rotation, fov[0]);
 	}
 
+	if (skip_color) {
+		return params;
+	}
+
 	//Learn color weights only
 	{
 		auto vertices = get_vertices(bfm, params);
@@ -170,6 +174,8 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 	}
 
 	bfm_create_obj(bfm, params, alternative_colors);
+
+	return params;
 }
 
 void DenseOptimizer::optimize(RGBD_Image* rgbd, std::vector<dlib::full_object_detection> detected_landmarks)
