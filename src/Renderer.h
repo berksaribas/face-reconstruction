@@ -12,8 +12,25 @@
 GLFWwindow* init_rendering_context(int width, int height);
 cv::Mat render_mesh(GLFWwindow* window, int width, int height, MatrixXd vertices, int* triangles, double* colors, std::vector<int> landmarks, bool draw_landmarks, bool render_triangle_id = false);
 void terminate_rendering_context();
-Matrix4d calculate_perspective_matrix(double angle, double aspect_ratio, double near, double far);
 MatrixXd get_transformed_landmarks(int width, int height, MatrixXd vertices, std::vector<int> landmarks, bool bottom_left);
+
+template <typename T>
+Matrix<T, 4, 4> calculate_perspective_matrix(T angle, T aspect, T zNear, T zFar) {
+    T const rad = angle * T(M_PI / 180);
+    T const tanHalfFovy = tan(rad / static_cast<T>(2));
+
+    Matrix<T, 4, 4> projection_matrix;
+    projection_matrix.setConstant(T(0));
+
+    projection_matrix(0, 0) = static_cast<T>(1) / (aspect * tanHalfFovy);
+    projection_matrix(1, 1) = static_cast<T>(1) / (tanHalfFovy);
+    projection_matrix(2, 2) = -(zFar + zNear) / (zFar - zNear);
+    projection_matrix(2, 3) = -static_cast<T>(1);
+    projection_matrix(3, 2) = -(static_cast<T>(2)* zFar* zNear) / (zFar - zNear);
+    projection_matrix.transposeInPlace();
+
+    return projection_matrix;
+}
 
 template <typename T>
 static Matrix<T, 4, 4> calculate_transformation_matrix(Matrix<T, 3, 1> translation, Matrix<T, 3, 3> rotation) {
@@ -31,7 +48,7 @@ static Matrix<T, 4, 4> calculate_transformation_matrix(Matrix<T, 3, 1> translati
 }
 
 template <typename T>
-static Matrix<T, -1, -1> calculate_transformation_perspective(double width, double height, Matrix<T, 4, 4> transformation_matrix, Matrix<T, -1, -1> mapped_vertices) {
+static Matrix<T, -1, -1> calculate_transformation_perspective(double width, double height, T fov, Matrix<T, 4, 4> transformation_matrix, Matrix<T, -1, -1> mapped_vertices) {
     //Transposing Vertices and adding an extra column for W
     mapped_vertices.conservativeResize(mapped_vertices.rows(), mapped_vertices.cols() + 1);
     mapped_vertices.col(3).fill(T(1));
@@ -41,17 +58,17 @@ static Matrix<T, -1, -1> calculate_transformation_perspective(double width, doub
     Matrix<T, -1, -1> result = transformation_matrix * mapped_vertices;
 
     //Projecting
-    double ar = width / height;
-    double n = 0.1;
-    double f = 5000;
-    Matrix<T, 4, 4> projection_matrix = calculate_perspective_matrix(45, ar, n, f).cast<T>();
+    T ar = T(width / height);
+    T n = T(0.1);
+    T f = T(5000.0);
+    Matrix<T, 4, 4> projection_matrix = calculate_perspective_matrix(fov, ar, n, f);
     result = projection_matrix * result;
 
     result.transposeInPlace();
     return result;
 }
 
-static MatrixXd calculate_transformation_perspective(int width, int height, Matrix4d transformation_matrix, double* vertices) {
+static MatrixXd calculate_transformation_perspective(int width, int height, double fov, Matrix4d transformation_matrix, double* vertices) {
     MatrixXd mapped_vertices = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(vertices, 28588, 3);
-    return calculate_transformation_perspective<double>((double)width, (double)height, transformation_matrix, mapped_vertices);
+    return calculate_transformation_perspective<double>((double)width, (double)height, fov, transformation_matrix, mapped_vertices);
 }

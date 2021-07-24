@@ -1,8 +1,8 @@
 #include "DenseOptimizer.h"
 #include "RegularizationTerm.h"
 
-#define SHAPE_REGULARIZATION_WEIGHT 5
-#define EXPRESSION_REGULARIZATION_WEIGHT 5
+#define SHAPE_REGULARIZATION_WEIGHT 4
+#define EXPRESSION_REGULARIZATION_WEIGHT 4
 #define COLOR_REGULARIZATION_WEIGHT 400
 
 void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detection> detected_landmarks)
@@ -16,9 +16,12 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 	rotation[2] = 0;
 	rotation[3] = 0;
 	Eigen::Vector3d translation = { 0, 0, -400 };
+	double* fov = new double[1];
+	fov[0] = 45.0;
 	Parameters params = bfm_mean_params();
+	alternative_colors = new double[85764];
 
-	//Learn position+rotation (using landmarks)
+	//Learn position+rotation+fov (using landmarks)
 	{
 		ceres::Problem sparse_problem;
 		ceres::Solver::Options options;
@@ -29,10 +32,10 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 		for (int j = 0; j < 68; j++) {
 			Vector2d detected_landmark = { detected_landmarks[0].part(j).x(), detected_landmarks[0].part(j).y() };
 
-			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<SparseCost, 2, 4, 3, 199, 100>(
+			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<SparseCost, 2, 4, 3, 1, 199, 100>(
 				new SparseCost(bfm, detected_landmark, bfm.landmarks[j], image.cols, image.rows)
 				);
-			sparse_problem.AddResidualBlock(cost_function, NULL, rotation, translation.data(), params.shape_weights.data(), params.exp_weights.data());
+			sparse_problem.AddResidualBlock(cost_function, NULL, rotation, translation.data(), fov, params.shape_weights.data(), params.exp_weights.data());
 		}
 
 		ceres::LocalParameterization* quaternion_parameterization = new ceres::QuaternionParameterization;
@@ -42,13 +45,17 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 		// keep the shape and expression constant
 		sparse_problem.SetParameterBlockConstant(params.shape_weights.data());
 		sparse_problem.SetParameterBlockConstant(params.exp_weights.data());
+		//sparse_problem.SetParameterBlockConstant(fov);
 
 		ceres::Solver::Summary summary;
 		ceres::Solve(options, &sparse_problem, &summary);
 		std::cout << summary.BriefReport() << std::endl;
 
-		render(image, bfm, params, translation, rotation);
+		render(image, bfm, params, translation, rotation, fov[0]);
 	}
+
+	std::cout << translation << "\n";
+	std::cout << fov[0] << "\n";
 
 	//Learn position + rotation + shape weights + expression weights
 	{
@@ -71,20 +78,20 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 		for (int j = 0; j < 68; j++) {
 			Vector2d detected_landmark = { detected_landmarks[0].part(j).x(), detected_landmarks[0].part(j).y() };
 
-			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<SparseCost, 2, 4, 3, 199, 100>(
+			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<SparseCost, 2, 4, 3, 1, 199, 100>(
 				new SparseCost(bfm, detected_landmark, bfm.landmarks[j], image.cols, image.rows)
 				);
-			sparse_problem.AddResidualBlock(cost_function, NULL, rotation, translation.data(), params.shape_weights.data(), params.exp_weights.data());
+			sparse_problem.AddResidualBlock(cost_function, NULL, rotation, translation.data(), fov, params.shape_weights.data(), params.exp_weights.data());
 		}
 
 		ceres::LocalParameterization* quaternion_parameterization = new ceres::QuaternionParameterization;
 		sparse_problem.SetParameterization(rotation, quaternion_parameterization);
-
+		sparse_problem.SetParameterBlockConstant(fov);
 		ceres::Solver::Summary summary;
 		ceres::Solve(options, &sparse_problem, &summary);
 		std::cout << summary.BriefReport() << std::endl;
 
-		render(image, bfm, params, translation, rotation);
+		render(image, bfm, params, translation, rotation, fov[0]);
 	}
 
 	//Learn color weights only
@@ -92,11 +99,11 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 		auto vertices = get_vertices(bfm, params);
 		Quaterniond rotation_quat = { rotation[0], rotation[1], rotation[2], rotation[3] };
 		auto transformation_matrix = calculate_transformation_matrix(translation, rotation_quat);
-		auto transformed_vertices = calculate_transformation_perspective(image.cols, image.rows, transformation_matrix, vertices);
+		auto transformed_vertices = calculate_transformation_perspective(image.cols, image.rows, fov[0], transformation_matrix, vertices);
 
 		ceres::Problem sparse_problem;
 		ceres::Solver::Options options;
-		options.linear_solver_type = ceres::DENSE_QR;
+		options.linear_solver_type = ceres::ITERATIVE_SCHUR;
 		options.num_threads = 12;
 		options.minimizer_progress_to_stdout = true;
 
@@ -122,10 +129,47 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 		ceres::Solve(options, &sparse_problem, &summary);
 		std::cout << summary.BriefReport() << std::endl;
 
-		render(image, bfm, params, translation, rotation);
+		render(image, bfm, params, translation, rotation, fov[0]);
+	}
+	
+	memcpy(alternative_colors, get_colors(bfm, params), 85764 * sizeof(double));
+
+	{
+		auto vertices = get_vertices(bfm, params);
+		Quaterniond rotation_quat = { rotation[0], rotation[1], rotation[2], rotation[3] };
+		auto transformation_matrix = calculate_transformation_matrix(translation, rotation_quat);
+		auto transformed_vertices = calculate_transformation_perspective(image.cols, image.rows, fov[0], transformation_matrix, vertices);
+
+		ceres::Problem sparse_problem;
+		ceres::Solver::Options options;
+		options.linear_solver_type = ceres::ITERATIVE_SCHUR;
+		options.num_threads = 12;
+		options.minimizer_progress_to_stdout = true;
+		for (int i = 0; i < triangle_render.rows; i++) {
+			for (int j = 0; j < triangle_render.cols; j++) {
+				auto p = triangle_render.data + (i * triangle_render.cols + j) * 3;
+				int triangle_id = (0 << 24) | ((int)p[2] << 16) | ((int)p[1] << 8) | ((int)p[0]);
+				if (triangle_id < 56572) {
+					double* colors1 = alternative_colors + bfm.triangles[triangle_id + 0 * 56572] * 3;
+					double* colors2 = alternative_colors + bfm.triangles[triangle_id + 1 * 56572] * 3;
+					double* colors3 = alternative_colors + bfm.triangles[triangle_id + 2 * 56572] * 3;
+
+					ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<DenseRGBCostAlternative, 3, 3, 3, 3>(
+						new DenseRGBCostAlternative(bfm, &image, triangle_id, j, i, &transformed_vertices)
+						);
+					sparse_problem.AddResidualBlock(cost_function, NULL, colors1, colors2, colors3);
+				}
+			}
+		}
+
+		ceres::Solver::Summary summary;
+		ceres::Solve(options, &sparse_problem, &summary);
+		std::cout << summary.BriefReport() << std::endl;
+
+		render(image, bfm, params, translation, rotation, fov[0], true);
 	}
 
-	bfm_create_obj(bfm, params);
+	bfm_create_obj(bfm, params, alternative_colors);
 }
 
 void DenseOptimizer::optimize(RGBD_Image* rgbd, std::vector<dlib::full_object_detection> detected_landmarks)
@@ -139,6 +183,8 @@ void DenseOptimizer::optimize(RGBD_Image* rgbd, std::vector<dlib::full_object_de
 	rotation[2] = 0;
 	rotation[3] = 0;
 	Eigen::Vector3d translation = { 0, 0, -400 };
+	double* fov = new double[1];
+	fov[0] = 45;
 	Parameters params = bfm_mean_params();
 
 	//Learn position+rotation (using landmarks)
@@ -152,10 +198,10 @@ void DenseOptimizer::optimize(RGBD_Image* rgbd, std::vector<dlib::full_object_de
 		for (int j = 0; j < 68; j++) {
 			Vector2d detected_landmark = { detected_landmarks[0].part(j).x(), detected_landmarks[0].part(j).y() };
 
-			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<SparseCost, 2, 4, 3, 199, 100>(
+			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<SparseCost, 2, 4, 3, 1, 199, 100>(
 				new SparseCost(bfm, detected_landmark, bfm.landmarks[j], rgbd->image.cols, rgbd->image.rows)
 				);
-			sparse_problem.AddResidualBlock(cost_function, NULL, rotation, translation.data(), params.shape_weights.data(), params.exp_weights.data());
+			sparse_problem.AddResidualBlock(cost_function, NULL, rotation, translation.data(), fov, params.shape_weights.data(), params.exp_weights.data());
 		}
 
 		ceres::LocalParameterization* quaternion_parameterization = new ceres::QuaternionParameterization;
@@ -169,7 +215,7 @@ void DenseOptimizer::optimize(RGBD_Image* rgbd, std::vector<dlib::full_object_de
 		ceres::Solve(options, &sparse_problem, &summary);
 		std::cout << summary.BriefReport() << std::endl;
 
-		render(rgbd->image, bfm, params, translation, rotation);
+		render(rgbd->image, bfm, params, translation, rotation, fov[0]);
 	}
 
 	std::cout << translation << "\n";
@@ -195,36 +241,37 @@ void DenseOptimizer::optimize(RGBD_Image* rgbd, std::vector<dlib::full_object_de
 		for (int j = 0; j < 68; j++) {
 			Vector2d detected_landmark = { detected_landmarks[0].part(j).x(), detected_landmarks[0].part(j).y() };
 
-			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<SparseCost, 2, 4, 3, 199, 100>(
+			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<SparseCost, 2, 4, 3, 1, 199, 100>(
 				new SparseCost(bfm, detected_landmark, bfm.landmarks[j], rgbd->image.cols, rgbd->image.rows)
 				);
-			sparse_problem.AddResidualBlock(cost_function, NULL, rotation, translation.data(), params.shape_weights.data(), params.exp_weights.data());
+			sparse_problem.AddResidualBlock(cost_function, NULL, rotation, translation.data(), fov, params.shape_weights.data(), params.exp_weights.data());
 		}
 
 		ceres::LocalParameterization* quaternion_parameterization = new ceres::QuaternionParameterization;
 		sparse_problem.SetParameterization(rotation, quaternion_parameterization);
-
+		sparse_problem.SetParameterBlockConstant(fov);
 
 		ceres::Solver::Summary summary;
 		ceres::Solve(options, &sparse_problem, &summary);
 		std::cout << summary.BriefReport() << std::endl;
 
-		render(rgbd->image, bfm, params, translation, rotation);
+		render(rgbd->image, bfm, params, translation, rotation, fov[0]);
 	}
 
-	//Learn color + depth
+	//Learn color + depth + position
+	for(int iteration = 0; iteration < 10; iteration++)
 	{
 		auto vertices = get_vertices(bfm, params);
 		Quaterniond rotation_quat = { rotation[0], rotation[1], rotation[2], rotation[3] };
 		auto transformation_matrix = calculate_transformation_matrix(translation, rotation_quat);
-		auto transformed_vertices = calculate_transformation_perspective(rgbd->image.cols, rgbd->image.rows, transformation_matrix, vertices);
+		auto transformed_vertices = calculate_transformation_perspective(rgbd->image.cols, rgbd->image.rows, fov[0], transformation_matrix, vertices);
 
 		ceres::Problem sparse_problem;
 		ceres::Solver::Options options;
-		options.linear_solver_type = ceres::DENSE_QR;
+		options.linear_solver_type = ceres::ITERATIVE_SCHUR;
 		options.num_threads = 12;
 		options.minimizer_progress_to_stdout = true;
-		options.max_linear_solver_iterations = 1;
+		options.max_num_iterations = 1;
 
 		ceres::CostFunction* color_cost = new ceres::AutoDiffCostFunction<ColorCostFunction, 199, 199>(
 			new ColorCostFunction(bfm, COLOR_REGULARIZATION_WEIGHT)
@@ -243,62 +290,105 @@ void DenseOptimizer::optimize(RGBD_Image* rgbd, std::vector<dlib::full_object_de
 
 		double model_depth_min = 9999, model_depth_max = 0;
 		double image_depth_min = 9999, image_depth_max = 0;
-		
+
+		int min_x = 9999, min_y = 9999, max_x = 0, max_y = 0;
 		for (int j = 0; j < 68; j++) {
-			double image_depth = rgbd->get_depth(detected_landmarks[0].part(j).x() / 2, detected_landmarks[0].part(j).y() / 2);
-			double model_depth = transformed_vertices(bfm.landmarks[j], 2);
+			if(detected_landmarks[0].part(j).x() < min_x) {
+				min_x = detected_landmarks[0].part(j).x();
+			}
+			if (detected_landmarks[0].part(j).x() > max_x) {
+				max_x = detected_landmarks[0].part(j).x();
+			}
+			if (detected_landmarks[0].part(j).y() < min_y) {
+				min_y = detected_landmarks[0].part(j).y();
+			}
+			if (detected_landmarks[0].part(j).y() > max_y) {
+				max_y = detected_landmarks[0].part(j).y();
+			}
+		}
 
-			if (model_depth < model_depth_min) {
-				model_depth_min = model_depth;
-			}
-			else if (model_depth > model_depth_max) {
-				model_depth_max = model_depth;
-			}
+		for (int i = 0; i < triangle_render.rows; i++) {
+			for (int j = 0; j < triangle_render.cols; j++) {
+				auto p = triangle_render.data + (i * triangle_render.cols + j) * 3;
+				int triangle_id = (0 << 24) | ((int)p[2] << 16) | ((int)p[1] << 8) | ((int)p[0]);
+				if (triangle_id < 56572) {
+					double image_depth = rgbd->get_depth(j, i);
+					if (!(i >= min_y && i <= max_y && j >= min_x && j <= max_x)) {
+						continue;
+					}
+					if (image_depth < 0.5 || image_depth > 2) {
+						continue;
+					}
 
-			if (image_depth < image_depth_min) {
-				image_depth_min = image_depth;
-			}
-			else if (image_depth > image_depth_max) {
-				image_depth_max = image_depth;
+					ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<DenseRGBDepthCost, 6, 4, 3, 2, 199, 100, 199>(
+						new DenseRGBDepthCost(bfm, rgbd, triangle_id, &model_depth_min, &model_depth_max, &image_depth_min, &image_depth_max, j, i)
+						);
+					sparse_problem.AddResidualBlock(cost_function, NULL, rotation, translation.data(), fov, params.shape_weights.data(), params.exp_weights.data(), params.col_weights.data());
+					
+					if (image_depth < image_depth_min) {
+						image_depth_min = image_depth;
+					}
+					else if (image_depth > image_depth_max) {
+						image_depth_max = image_depth;
+					}
+
+					for (int t = 0; t < 3; t++) {
+						int vertex_id = bfm.triangles[triangle_id + t * 56572];
+						double model_depth = transformed_vertices(vertex_id, 2);
+
+						if (model_depth < model_depth_min) {
+							model_depth_min = model_depth;
+						}
+						else if (model_depth > model_depth_max) {
+							model_depth_max = model_depth;
+						}
+					}
+				}
 			}
 		}
 
 		std::cout << model_depth_min << " - " << model_depth_max << "\n";
 		std::cout << image_depth_min << " - " << image_depth_max << "\n";
-
-		for (int j = 0; j < 56572; j++) {
-			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<DenseRGBDepthCost, 4, 4, 3, 199, 100, 199>(
-				new DenseRGBDepthCost(bfm, rgbd, j, &transformed_vertices, model_depth_min, model_depth_max, image_depth_min, image_depth_max)
-				);
-			sparse_problem.AddResidualBlock(cost_function, NULL, rotation, translation.data(), params.shape_weights.data(), params.exp_weights.data(), params.col_weights.data());
-		}
+		std::cout << min_x << " - " << max_x << "\n";
+		std::cout << min_y << " - " << max_y << "\n";
 
 		sparse_problem.SetParameterBlockConstant(rotation);
 		sparse_problem.SetParameterBlockConstant(translation.data());
+		//sparse_problem.SetParameterBlockConstant(fov);
+		//sparse_problem.SetParameterBlockConstant(params.exp_weights.data());
+		//sparse_problem.SetParameterBlockConstant(params.shape_weights.data());
+		//sparse_problem.SetParameterBlockConstant(params.col_weights.data());
 
 		ceres::Solver::Summary summary;
 		ceres::Solve(options, &sparse_problem, &summary);
-		std::cout << summary.BriefReport() << std::endl;
+		//std::cout << summary.BriefReport() << std::endl;
 
-		render(rgbd->image, bfm, params, translation, rotation);
+		render(rgbd->image, bfm, params, translation, rotation, fov[0]);
 	}
 
 	bfm_create_obj(bfm, params);
 }
 
-void DenseOptimizer::render(cv::Mat image, BFM bfm, Parameters params, Eigen::Vector3d translation, double* rotation){
+void DenseOptimizer::render(cv::Mat image, BFM bfm, Parameters params, Eigen::Vector3d translation, double* rotation, double fov, bool include_alternative){
 	auto context = init_rendering_context(image.cols, image.rows);
 	auto vertices = get_vertices(bfm, params);
 	auto colors = get_colors(bfm, params);
+	if (include_alternative) {
+		for (int i = 0; i < 85764; i++) {
+			colors[i] += alternative_colors[i];
+			colors[i] /= 2.0;
+		}
+	}
+
 	Quaterniond rotation_quat = { rotation[0], rotation[1], rotation[2], rotation[3] };
 	auto transformation_matrix = calculate_transformation_matrix(translation, rotation_quat);
-	auto transformed_vertices = calculate_transformation_perspective(image.cols, image.rows, transformation_matrix, vertices);
+	auto transformed_vertices = calculate_transformation_perspective(image.cols, image.rows, fov, transformation_matrix, vertices);
 
 	albedo_render = render_mesh(context, image.cols, image.rows, transformed_vertices, bfm.triangles, colors, bfm.landmarks, false);
 	triangle_render = render_mesh(context, image.cols, image.rows, transformed_vertices, bfm.triangles, colors, bfm.landmarks, false, true);
 
 	cv::imwrite("img_"+ std::to_string(render_number) + ".png", albedo_render);
-	cv::imwrite("img_"+ std::to_string(render_number) + "_triangles.png", triangle_render);
+	//cv::imwrite("img_"+ std::to_string(render_number) + "_triangles.png", triangle_render);
 	terminate_rendering_context();
 
 	render_number++;

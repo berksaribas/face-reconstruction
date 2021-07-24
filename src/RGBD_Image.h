@@ -16,8 +16,8 @@
 class RGBD_Image {
 public:
 	std::vector<dlib::full_object_detection> landmarks;
-	std::vector<Point3D> points;
 	cv::Mat image;
+	double* depth;
 
 	RGBD_Image(char * rgb_path,char * depth_path) {
 		this->image = cv::imread(rgb_path);
@@ -26,11 +26,67 @@ public:
 	};
 
 	double get_depth(int x, int y) {
-		assert(!this->points.empty());
-		for(Point3D p : this->points){
-			if((int)p.x == x && (int)p.y == y) return p.z;
+		return depth[x + y * 1920];
+
+		if (x % 2 == 0 && y % 2 == 0) {
+			return depth[x + y * 1920];
 		}
-		return 0.; 
+		else if (x % 2 == 1 && y % 2 == 0) {
+			double result = 0;
+			int count = 0;
+			if (depth[x - 1 + y * 1920] != 0) {
+				result += depth[x - 1 + y * 1920];
+				count++;
+			}
+			if (depth[x + 1 + y * 1920] != 0) {
+				result += depth[x + 1 + y * 1920];
+				count++;
+			}
+			if (count == 0) {
+				return result;
+			}
+			return result / count;
+		}
+		else if (x % 2 == 0 && y % 2 == 1) {
+			double result = 0;
+			int count = 0;
+			if (depth[x + (y - 1) * 1920] != 0) {
+				result += depth[x + (y - 1) * 1920];
+				count++;
+			}
+			if (depth[x + (y - 1) * 1920] != 0) {
+				result += depth[x + (y - 1) * 1920];
+				count++;
+			}
+			if (count == 0) {
+				return result;
+			}
+			return result / count;
+		}
+
+		double result = 0;
+		int count = 0;
+		if (depth[x - 1 + (y - 1) * 1920] != 0) {
+			result += depth[x - 1 + (y - 1) * 1920];
+			count++;
+		}
+		if (depth[x - 1 + (y + 1) * 1920] != 0) {
+			result += depth[x - 1 + (y + 1) * 1920];
+			count++;
+		}
+		if (depth[x + 1 + (y - 1) * 1920] != 0) {
+			result += depth[x + 1 + (y - 1) * 1920];
+			count++;
+		}
+		if (depth[x + 1 + (y + 1) * 1920] != 0) {
+			result += depth[x + 1 + (y + 1) * 1920];
+			count++;
+		}
+
+		if (count == 0) {
+			return result;
+		}
+		return result / count;		
 	}
 	//Method to load the binary data into a vector of 3D points where x and y are already projected into 2D	
 	void load_data(const char * path){  
@@ -40,6 +96,8 @@ public:
 		//P matrix is in camera_info.yaml*/
 		Eigen::Matrix<float, 3,4> P;
 			P <<  1052.667867276341, 0, 962.4130834944134, 0, 0, 1052.020917785721, 536.2206151001486, 0, 0, 0, 1, 0;
+
+		depth = new double[1920 * 1080];
 
 		for(int i =0; i<960;i++){
 			for(int j =0; j<540;j++){
@@ -62,7 +120,7 @@ public:
 					continue;
 				}
 
-				points.push_back(p);
+				depth[(int)std::round(output[0]) + (int)std::round(output[1]) * 1920] = output[2];
 			}
 		}
 		inBinFile.close();

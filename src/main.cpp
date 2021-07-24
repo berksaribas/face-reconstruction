@@ -18,12 +18,13 @@
 int main(int argc, char** argv) {
 #ifdef CONSTRUCT_FACE
 	DenseOptimizer optimizer;
-	cv::Mat img = cv::imread("../data/tom.jpg");
+	
+	cv::Mat img = cv::imread("../data/juicer.jpg");
 	std::vector<dlib::full_object_detection> detectedLandmarks;
-	detectedLandmarks = DetectLandmarks("../data/tom.jpg", false, true);
+	detectedLandmarks = DetectLandmarks("../data/juicer.jpg", true, true);
 	optimizer.optimize(img, detectedLandmarks);
 
-	//RGBD_Image *rgbd = new RGBD_Image("../data/RGBD_data/Test1/000_00_image.png","../data/RGBD_data/Test1/000_00_cloud.bin");
+	//RGBD_Image *rgbd = new RGBD_Image("../data/RGBD_data/Test1/004_00_image.png","../data/RGBD_data/Test1/004_00_cloud.bin");
 	//optimizer.optimize(rgbd, rgbd->landmarks);
 	return 1;
 #endif

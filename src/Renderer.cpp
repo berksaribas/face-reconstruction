@@ -35,23 +35,6 @@ void terminate_rendering_context() {
     glfwTerminate();
 }
 
-Matrix4d calculate_perspective_matrix(double angle, double aspect_ratio, double near, double far) {
-    double scale = tan(angle * 0.5 * M_PI / 180) * near;
-
-    double r = aspect_ratio * scale;
-    double l = -r;
-    double t = scale;
-    double b = -t;
-
-    Matrix4d projection_matrix;
-    projection_matrix << 2 * near / (r - l), 0, (r + l) / (r - l), 0,
-        0, 2 * near / (t - b), (t + b) / (t - b), 0,
-        0, 0, -(far + near) / (far - near), -(2 * far * near) / (far - near),
-        0, 0, -1, 0;
-
-    return projection_matrix;
-}
-
 MatrixXd get_transformed_landmarks(int width, int height, MatrixXd vertices, std::vector<int> landmarks, bool bottom_left) {
     MatrixXd transformed_landmarks(landmarks.size(), 2);
     for (int i = 0; i < landmarks.size(); i++) {

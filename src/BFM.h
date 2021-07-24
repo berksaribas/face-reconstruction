@@ -163,6 +163,34 @@ static void bfm_create_obj(BFM bfm, Parameters params) {
     obj_file.close();
 }
 
+static void bfm_create_obj(BFM bfm, Parameters params, double* alternative_colors) {
+    std::ofstream obj_file("export.obj");
+
+    MatrixXd shape_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_var, 199, 1);
+    MatrixXd shape_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 199);
+
+    MatrixXd exp_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_var, 100, 1);
+    MatrixXd exp_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_basis, 85764, 100);
+
+    MatrixXd shape_result = shape_pca_basis * params.shape_weights;
+    MatrixXd exp_result = exp_pca_basis * params.exp_weights;
+    MatrixXd result = shape_result + exp_result;
+
+    MatrixXd color_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_var, 199, 1);
+    MatrixXd color_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_basis, 85764, 199);
+    MatrixXd color_result = color_pca_basis * params.col_weights;
+
+    for (int i = 0; i < 85764; i += 3) {
+        obj_file << "v " << bfm.shape_mean[i] + bfm.exp_mean[i] + result(i) << " " << bfm.shape_mean[i + 1] + bfm.exp_mean[i + 1] + result(i + 1) << " " << bfm.shape_mean[i + 2] + bfm.exp_mean[i + 2] + result(i + 2) << " " << (bfm.color_mean[i] + color_result(i) + alternative_colors[i]) / 2.0 << " " << (bfm.color_mean[i + 1] + color_result(i + 1) + alternative_colors[i + 1]) / 2.0 << " " << (bfm.color_mean[i + 2] + color_result(i + 2) + alternative_colors[i + 2]) / 2.0 << "\n";
+    }
+
+    for (int i = 0; i < 56572; i++) {
+        obj_file << "f " << bfm.triangles[i] + 1 << " " << bfm.triangles[i + 56572] + 1 << " " << bfm.triangles[i + 56572 * 2] + 1 << "\n";
+    }
+
+    obj_file.close();
+}
+
 static double* get_vertices(BFM bfm, Parameters params) {
     MatrixXd shape_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_var, 199, 1);
     MatrixXd shape_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_pca_basis, 85764, 199);
@@ -187,7 +215,7 @@ static double* get_colors(BFM bfm, Parameters params) {
     MatrixXd color_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_basis, 85764, 199);
 
     MatrixXd color_result = color_pca_basis * params.col_weights;
-
+    std::cout << "size: " << color_result.rows() << " " << color_result.cols();
     double* sum = new double[85764];
     for (int i = 0; i < 85764; i++) {
         sum[i] = bfm.color_mean[i] + color_result(i);
@@ -195,6 +223,7 @@ static double* get_colors(BFM bfm, Parameters params) {
     return sum;
 }
 
+/*
 static MatrixXd bfm_calc_2D_landmarks(BFM bfm, Parameters params, int width=800, int height=800, bool createImg=false) {
     //We create a rendering context. Rendering context is not required if nothing is being rendered.
     auto context = init_rendering_context(width, height);
@@ -221,3 +250,4 @@ static MatrixXd bfm_calc_2D_landmarks(BFM bfm, Parameters params, int width=800,
     return landmarks;
     //return MatrixXf::Zero();
 }
+*/
