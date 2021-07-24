@@ -8,6 +8,10 @@
 #include <Eigen.h>
 #include <renderer.h>
 
+#define SHAPE_COUNT 199
+#define EXP_COUNT 99
+#define COLOR_COUNT 199
+
 static std::string triangles_path = "../data/shape representer cells.bin"; // 3x56572
 
 static std::string color_mean_path = "../data/color model mean.bin"; // 85764
@@ -144,13 +148,14 @@ static void bfm_create_obj(BFM bfm, Parameters params) {
     MatrixXd exp_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_var, 100, 1);
     MatrixXd exp_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_basis, 85764, 100);
 
-    MatrixXd shape_result = shape_pca_basis * params.shape_weights;
-    MatrixXd exp_result = exp_pca_basis * params.exp_weights;
+    MatrixXd shape_result = shape_pca_basis * (shape_pca_var.cwiseSqrt().cwiseProduct(params.shape_weights));
+    MatrixXd exp_result = exp_pca_basis * (exp_pca_var.cwiseSqrt().cwiseProduct(params.exp_weights));
+
     MatrixXd result = shape_result + exp_result;
 
     MatrixXd color_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_var, 199, 1);
     MatrixXd color_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_basis, 85764, 199);
-    MatrixXd color_result = color_pca_basis * params.col_weights;
+    MatrixXd color_result = color_pca_basis * (color_pca_var.cwiseSqrt().cwiseProduct(params.col_weights));
 
     for (int i = 0; i < 85764; i += 3) {
         obj_file << "v " << bfm.shape_mean[i] + bfm.exp_mean[i] + result(i) << " " << bfm.shape_mean[i + 1] + bfm.exp_mean[i + 1] + result(i + 1) << " " << bfm.shape_mean[i + 2] + bfm.exp_mean[i + 2] + result(i + 2) << " " << bfm.color_mean[i] + color_result(i) << " " << bfm.color_mean[i + 1] + color_result(i + 1) << " " << bfm.color_mean[i + 2] + color_result(i+2) << "\n";
@@ -172,13 +177,13 @@ static void bfm_create_obj(BFM bfm, Parameters params, double* alternative_color
     MatrixXd exp_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_var, 100, 1);
     MatrixXd exp_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_basis, 85764, 100);
 
-    MatrixXd shape_result = shape_pca_basis * params.shape_weights;
-    MatrixXd exp_result = exp_pca_basis * params.exp_weights;
+    MatrixXd shape_result = shape_pca_basis * (shape_pca_var.cwiseSqrt().cwiseProduct(params.shape_weights));
+    MatrixXd exp_result = exp_pca_basis * (exp_pca_var.cwiseSqrt().cwiseProduct(params.exp_weights));
     MatrixXd result = shape_result + exp_result;
 
     MatrixXd color_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_var, 199, 1);
     MatrixXd color_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_basis, 85764, 199);
-    MatrixXd color_result = color_pca_basis * params.col_weights;
+    MatrixXd color_result = color_pca_basis * (color_pca_var.cwiseSqrt().cwiseProduct(params.col_weights));
 
     for (int i = 0; i < 85764; i += 3) {
         obj_file << "v " << bfm.shape_mean[i] + bfm.exp_mean[i] + result(i) << " " << bfm.shape_mean[i + 1] + bfm.exp_mean[i + 1] + result(i + 1) << " " << bfm.shape_mean[i + 2] + bfm.exp_mean[i + 2] + result(i + 2) << " " << (bfm.color_mean[i] + color_result(i) + alternative_colors[i]) / 2.0 << " " << (bfm.color_mean[i + 1] + color_result(i + 1) + alternative_colors[i + 1]) / 2.0 << " " << (bfm.color_mean[i + 2] + color_result(i + 2) + alternative_colors[i + 2]) / 2.0 << "\n";
@@ -198,8 +203,8 @@ static double* get_vertices(BFM bfm, Parameters params) {
     MatrixXd exp_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_var, 100, 1);
     MatrixXd exp_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.exp_pca_basis, 85764, 100);
 
-    MatrixXd shape_result = shape_pca_basis * params.shape_weights;
-    MatrixXd exp_result = exp_pca_basis * params.exp_weights;
+    MatrixXd shape_result = shape_pca_basis * (shape_pca_var.cwiseSqrt().cwiseProduct(params.shape_weights));
+    MatrixXd exp_result = exp_pca_basis * (exp_pca_var.cwiseSqrt().cwiseProduct(params.exp_weights));
     MatrixXd result = shape_result + exp_result;
     MatrixXd mapped_vertices = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.shape_mean, 85764, 1);
 
@@ -214,7 +219,7 @@ static double* get_colors(BFM bfm, Parameters params) {
     MatrixXd color_pca_var = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_var, 199, 1);
     MatrixXd color_pca_basis = Map<Matrix<double, Dynamic, Dynamic, RowMajor>>(bfm.color_pca_basis, 85764, 199);
 
-    MatrixXd color_result = color_pca_basis * params.col_weights;
+    MatrixXd color_result = color_pca_basis * (color_pca_var.cwiseSqrt().cwiseProduct(params.col_weights));
     std::cout << "size: " << color_result.rows() << " " << color_result.cols();
     double* sum = new double[85764];
     for (int i = 0; i < 85764; i++) {

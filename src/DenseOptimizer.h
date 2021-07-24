@@ -33,15 +33,15 @@ struct SparseCost {
 		face_model(0, 1) = T(bfm.shape_mean[vertex_id * 3 + 1]) + T(bfm.exp_mean[vertex_id * 3 + 1]);
 		face_model(0, 2) = T(bfm.shape_mean[vertex_id * 3 + 2]) + T(bfm.exp_mean[vertex_id * 3 + 2]);
 
-		for (int i = 0; i < 199; i++) {
-			T value = shape_weights[i];
+		for (int i = 0; i < SHAPE_COUNT; i++) {
+			T value = T(sqrt(bfm.shape_pca_var[i])) * shape_weights[i];
 			face_model(0, 0) += T(shape_pca_basis_full(vertex_id * 3, i)) * value;
 			face_model(0, 1) += T(shape_pca_basis_full(vertex_id * 3 + 1, i)) * value;
 			face_model(0, 2) += T(shape_pca_basis_full(vertex_id * 3 + 2, i)) * value;
 		}
 
-		for (int i = 0; i < 100; i++) {
-			T value = exp_weights[i];
+		for (int i = 0; i < EXP_COUNT; i++) {
+			T value = T(sqrt(bfm.exp_pca_var[i])) * exp_weights[i];
 			face_model(0, 0) += T(exp_pca_basis_full(vertex_id * 3, i)) * value;
 			face_model(0, 1) += T(exp_pca_basis_full(vertex_id * 3 + 1, i)) * value;
 			face_model(0, 2) += T(exp_pca_basis_full(vertex_id * 3 + 2, i)) * value;
@@ -89,8 +89,8 @@ struct DenseRGBCost {
 			face_color(t, 1) = T(bfm.color_mean[vertex_id * 3 + 1]);
 			face_color(t, 2) = T(bfm.color_mean[vertex_id * 3 + 2]);
 
-			for (int i = 0; i < 199; i++) {
-				T value = color_weights[i];
+			for (int i = 0; i < COLOR_COUNT; i++) {
+				T value = T(sqrt(bfm.color_pca_var[i])) * color_weights[i];
 				face_color(t, 0) += T(color_pca_basis_full(vertex_id * 3, i)) * value;
 				face_color(t, 1) += T(color_pca_basis_full(vertex_id * 3 + 1, i)) * value;
 				face_color(t, 2) += T(color_pca_basis_full(vertex_id * 3 + 2, i)) * value;

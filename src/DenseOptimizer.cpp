@@ -1,9 +1,9 @@
 #include "DenseOptimizer.h"
 #include "RegularizationTerm.h"
 
-#define SHAPE_REGULARIZATION_WEIGHT 4
-#define EXPRESSION_REGULARIZATION_WEIGHT 4
-#define COLOR_REGULARIZATION_WEIGHT 400
+#define SHAPE_REGULARIZATION_WEIGHT 10
+#define EXPRESSION_REGULARIZATION_WEIGHT 8
+#define COLOR_REGULARIZATION_WEIGHT 0.0007
 
 void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detection> detected_landmarks)
 {
@@ -32,7 +32,7 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 		for (int j = 0; j < 68; j++) {
 			Vector2d detected_landmark = { detected_landmarks[0].part(j).x(), detected_landmarks[0].part(j).y() };
 
-			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<SparseCost, 2, 4, 3, 1, 199, 100>(
+			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<SparseCost, 2, 4, 3, 1, SHAPE_COUNT, EXP_COUNT>(
 				new SparseCost(bfm, detected_landmark, bfm.landmarks[j], image.cols, image.rows)
 				);
 			sparse_problem.AddResidualBlock(cost_function, NULL, rotation, translation.data(), fov, params.shape_weights.data(), params.exp_weights.data());
@@ -65,12 +65,12 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 		options.num_threads = 12;
 		options.minimizer_progress_to_stdout = true;
 
-		ceres::CostFunction* shape_cost = new ceres::AutoDiffCostFunction<ShapeCostFunction, 199, 199>(
+		ceres::CostFunction* shape_cost = new ceres::AutoDiffCostFunction<ShapeCostFunction, SHAPE_COUNT, SHAPE_COUNT>(
 				new ShapeCostFunction(bfm, SHAPE_REGULARIZATION_WEIGHT)
 				);
 		sparse_problem.AddResidualBlock(shape_cost, NULL, params.shape_weights.data());
 
-		ceres::CostFunction* expression_cost = new ceres::AutoDiffCostFunction<ExpressionCostFunction, 100, 100>(
+		ceres::CostFunction* expression_cost = new ceres::AutoDiffCostFunction<ExpressionCostFunction, EXP_COUNT, EXP_COUNT>(
 				new ExpressionCostFunction(bfm, EXPRESSION_REGULARIZATION_WEIGHT)
 				);
 		sparse_problem.AddResidualBlock(expression_cost, NULL, params.exp_weights.data());
@@ -78,7 +78,7 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 		for (int j = 0; j < 68; j++) {
 			Vector2d detected_landmark = { detected_landmarks[0].part(j).x(), detected_landmarks[0].part(j).y() };
 
-			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<SparseCost, 2, 4, 3, 1, 199, 100>(
+			ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<SparseCost, 2, 4, 3, 1, SHAPE_COUNT, EXP_COUNT>(
 				new SparseCost(bfm, detected_landmark, bfm.landmarks[j], image.cols, image.rows)
 				);
 			sparse_problem.AddResidualBlock(cost_function, NULL, rotation, translation.data(), fov, params.shape_weights.data(), params.exp_weights.data());
@@ -107,7 +107,7 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 		options.num_threads = 12;
 		options.minimizer_progress_to_stdout = true;
 
-		ceres::CostFunction* color_cost = new ceres::AutoDiffCostFunction<ColorCostFunction, 199, 199>(
+		ceres::CostFunction* color_cost = new ceres::AutoDiffCostFunction<ColorCostFunction, COLOR_COUNT, COLOR_COUNT>(
 				new ColorCostFunction(bfm, COLOR_REGULARIZATION_WEIGHT)
 				);
 		sparse_problem.AddResidualBlock(color_cost, NULL,params.col_weights.data());
@@ -117,7 +117,7 @@ void DenseOptimizer::optimize(cv::Mat image, std::vector<dlib::full_object_detec
 				auto p = triangle_render.data + (i * triangle_render.cols + j) * 3;
 				int triangle_id = (0 << 24) | ((int)p[2] << 16) | ((int)p[1] << 8) | ((int)p[0]);
 				if (triangle_id < 56572) {
-					ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<DenseRGBCost, 3, 199>(
+					ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<DenseRGBCost, 3, COLOR_COUNT>(
 						new DenseRGBCost(bfm, &image, triangle_id, j, i, &transformed_vertices)
 						);
 					sparse_problem.AddResidualBlock(cost_function, NULL, params.col_weights.data());
