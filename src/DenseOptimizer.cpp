@@ -398,7 +398,7 @@ void DenseOptimizer::render(cv::Mat image, BFM bfm, Parameters params, Eigen::Ve
 	triangle_render = render_mesh(context, image.cols, image.rows, transformed_vertices, bfm.triangles, colors, bfm.landmarks, false, true);
 
 	cv::imwrite("img_"+ std::to_string(render_number) + ".png", albedo_render);
-	//cv::imwrite("img_"+ std::to_string(render_number) + "_triangles.png", triangle_render);
+	cv::imwrite("img_"+ std::to_string(render_number) + "_triangles.png", triangle_render);
 	terminate_rendering_context();
 
 	render_number++;

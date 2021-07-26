@@ -327,7 +327,7 @@ private:
 
 class DenseOptimizer {
 public:
-	Parameters optimize(cv::Mat image, std::vector<dlib::full_object_detection> detected_landmarks, bool skip_color = false);
+	Parameters optimize(cv::Mat image, std::vector<dlib::full_object_detection> detected_landmarks, bool skip_color = false, VectorXd* exp_weights = nullptr);
 	void optimize(RGBD_Image* rgbd, std::vector<dlib::full_object_detection> detected_landmarks);
 private: 
 	void render(cv::Mat image, BFM bfm, Parameters params, Eigen::Vector3d translation, double* rotation, double fov, bool include_alternative = false);
