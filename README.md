@@ -24,6 +24,25 @@ Input Image             |  Face Fitting | Dense Optimization
 # How to build
 You need to create a libs folder and install all required libraries there. You'll need to setup Eigen, Ceres, dlib, glog and OpenCV. You can then create the project using CMake (located in /src). 
 
+# Data Setup
+We use Basel Face Model (2017) as our morphable face model. Because of the licensing issues, we are unable to distribute them in this repository. You can donwload them here:
+https://faces.dmi.unibas.ch/bfm/bfm2017.html
+
+We also convert the data we need to binary format. You need to convert the following data tables to binary. We will be providing the required tool soon but in mean time you can convert them by yourself.
+
+* color model mean
+* color model pcaBasis
+* color model pcaVariance
+* expression model mean
+* expression model pcaBasis
+* expression model pcaVariance
+* shape model mean
+* shape model pcaBasis
+* shape model pcaVariance
+* shape representer cells
+
+See BFM.h in src to see how we load them. Sorry for the inconvenience. 
+
 # Team Members
 * Berk Emre Saribas
 * Min Ting Luong
