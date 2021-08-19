@@ -23,12 +23,6 @@ set(GLEW_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/../glew/lib/Release/x64/glew32s.lib
 
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${Ceres_DIR})
 
-# Use pre-compiled libraries on Windows
-if(WIN32)
-    set(FreeImage_INCLUDE_DIR ${LIBRARY_DIR}/FreeImage/x64/ CACHE PATH "Path to FreeImage header file")
-    set(FreeImage_LIBRARY_DIR ${LIBRARY_DIR}/FreeImage/x64/ CACHE PATH "Path to FreeImage .lib/.dll folder")
-endif(WIN32)
-
 # Set C++ flags
 set(CMAKE_CXX_STANDARD 14)
 
@@ -63,7 +57,6 @@ set(SOURCE_FILES
     DenseOptimizer.cpp
 )
 
-link_directories(${FreeImage_LIBRARY_DIR})
 add_executable(face_reconstruction main.cpp ${HEADER_FILES} ${SOURCE_FILES})
-target_link_libraries(face_reconstruction ceres freeimage dlib::dlib ${OpenCV_LIBS} ${GLEW_LIBRARY} ${GLFW_LIBRARY} ${OPENGL_LIBRARIES})
-target_include_directories(face_reconstruction PUBLIC ${Eigen3_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}  ${Ceres_INCLUDE_DIR} ${glog_INCLUDE_DIR} ${FreeImage_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${dlib_INCLUDE_DIR} ${GLEW_INCLUDE_DIRS} ${GLFW_INCLUDE_DIRS})
+target_link_libraries(face_reconstruction ceres dlib::dlib ${OpenCV_LIBS} ${GLEW_LIBRARY} ${GLFW_LIBRARY} ${OPENGL_LIBRARIES})
+target_include_directories(face_reconstruction PUBLIC ${Eigen3_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}  ${Ceres_INCLUDE_DIR} ${glog_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${dlib_INCLUDE_DIR} ${GLEW_INCLUDE_DIRS} ${GLFW_INCLUDE_DIRS})
